@@ -6,3 +6,5 @@ dist
 __pycache__
 *.pyc
 .turbo
+services/solver/__pycache__
+services/solver/.venv/*
