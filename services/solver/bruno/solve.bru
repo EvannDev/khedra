@@ -1,0 +1,48 @@
+meta {
+  name: Solve Planning
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/solve
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "start_date": "2026-04-07",
+    "end_date": "2026-05-07",
+    "employees": [
+      { "id": "emp_1", "name": "Alice Martin", "skills": ["manager", "caisse"] },
+      { "id": "emp_2", "name": "Bob Dupont", "skills": ["caisse"] },
+      { "id": "emp_3", "name": "Clara Petit", "skills": ["manager"] },
+      { "id": "emp_4", "name": "David Leroy", "skills": ["manager", "caisse"] },
+      { "id": "emp_5", "name": "Emma Bernard", "skills": ["caisse"] },
+      { "id": "emp_6", "name": "François Simon", "skills": ["manager"] },
+      { "id": "emp_7", "name": "Gabriel Moreau", "skills": ["caisse"] },
+      { "id": "emp_8", "name": "Hélène Laurent", "skills": ["manager", "caisse"] },
+      { "id": "emp_9", "name": "Inès Thomas", "skills": ["caisse"] },
+      { "id": "emp_10", "name": "Julien Richard", "skills": ["manager"] },
+      { "id": "emp_11", "name": "Kamila Dubois", "skills": ["caisse"] },
+      { "id": "emp_12", "name": "Lucas Fontaine", "skills": ["manager", "caisse"] },
+      { "id": "emp_13", "name": "Marie Garnier", "skills": ["caisse"] },
+      { "id": "emp_14", "name": "Nathan Chevalier", "skills": ["manager"] },
+      { "id": "emp_15", "name": "Océane Blanc", "skills": ["caisse"] },
+      { "id": "emp_16", "name": "Pierre Rousseau", "skills": ["manager", "caisse"] }
+    ],
+    "shift_types": [
+      { "id": "day_shift", "name": "Jour", "start_time": "07:00:00", "end_time": "19:00:00", "duration_hours": 12 },
+      { "id": "night_shift", "name": "Nuit", "start_time": "19:00:00", "end_time": "07:00:00", "duration_hours": 12 }
+    ],
+    "constraints": [
+      { "type": "max_hours_per_week", "params": { "max": 40 }, "scope": "all", "enabled": true },
+      { "type": "unavailability", "params": { "employee_id": "emp_2", "days": ["saturday", "sunday"] }, "scope": "employee", "enabled": true },
+      { "type": "max_consecutive_days", "params": { "max": 2 }, "scope": "all", "enabled": true },
+      { "type": "min_employees_per_shift", "params": { "shift_type_id": "night_shift", "min": 2 }, "scope": "all", "enabled": true },
+      { "type": "min_employees_per_shift", "params": { "shift_type_id": "day_shift", "min": 2 }, "scope": "all", "enabled": true },
+      { "type": "shift_preference", "params": { "employee_id": "emp_1", "shift_type_id": "day_shift", "weight": "preferred" }, "scope": "employee", "enabled": true }
+    ]
+  }
+}
