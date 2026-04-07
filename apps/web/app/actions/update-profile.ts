@@ -11,7 +11,7 @@ export async function updateProfile(data: unknown): Promise<{ success: true; nam
 
   const parsed = profileSchema.safeParse(data)
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? "Invalid input" }
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
   }
 
   const { name } = parsed.data
