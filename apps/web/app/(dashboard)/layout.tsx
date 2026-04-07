@@ -1,7 +1,8 @@
 import { auth, signOut } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { RiCalendarScheduleLine, RiLogoutBoxLine } from "@remixicon/react"
+import { RiCalendarScheduleLine, RiLogoutBoxLine, RiSettings4Line } from "@remixicon/react"
+import { getAvatarUrl } from "@/lib/avatar"
 
 export default async function DashboardLayout({
   children,
@@ -24,10 +25,22 @@ export default async function DashboardLayout({
             </div>
             <span className="text-lg font-bold tracking-tight">khedra</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <img
+              src={getAvatarUrl(session.user.email)}
+              alt=""
+              className="size-7 rounded-full bg-muted border border-border"
+            />
             <span className="text-sm text-muted-foreground">
               {session.user.name ?? session.user.email}
             </span>
+            <Link
+              href="/dashboard/settings"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Profile settings"
+            >
+              <RiSettings4Line className="size-4" />
+            </Link>
             <form
               action={async () => {
                 "use server"
