@@ -8,7 +8,7 @@ fastapi==0.135.3
 h11==0.16.0
 idna==3.11
 immutabledict==4.3.1
-numpy==2.2.6
+numpy==2.4.4
 ortools==9.15.6755
 pandas==2.3.3
 protobuf==6.33.6
