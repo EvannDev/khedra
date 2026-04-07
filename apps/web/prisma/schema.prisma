@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── NextAuth required models ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image          String?
+  hashedPassword String?
+  role           UserRole  @default(viewer)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  teamMembers TeamMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  admin
+  manager
+  viewer
+}
+
+enum PlanningStatus {
+  draft
+  solving
+  solved
+  failed
+}
+
+enum ConstraintType {
+  max_hours_per_week
+  unavailability
+  min_rest_between_shifts
+  max_consecutive_days
+  required_skill
+  weekend_fairness
+  shift_preference
+  min_employees_per_shift
+}
+
+enum ConstraintScope {
+  all
+  team
+  employee
+}
+
+enum ConstraintSource {
+  manual
+  llm
+}
+
+enum SolutionStatus {
+  pending
+  complete
+  failed
+}
+
+// ─── Domain models ──────────────────────────────────────────────────────────
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members    TeamMember[]
+  employees  Employee[]
+  shiftTypes ShiftType[]
+  plannings  Planning[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  userId    String
+  teamId    String
+  role      UserRole @default(viewer)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  skills    String[]
+  teamId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+}
+
+model ShiftType {
+  id        String   @id @default(cuid())
+  name      String
+  startTime String
+  endTime   String
+  color     String
+  teamId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+}
+
+model Planning {
+  id        String         @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    PlanningStatus @default(draft)
+  teamId    String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  constraints Constraint[]
+  solutions   Solution[]
+}
+
+model Constraint {
+  id         String           @id @default(cuid())
+  type       ConstraintType
+  params     Json
+  scope      ConstraintScope  @default(all)
+  enabled    Boolean          @default(true)
+  source     ConstraintSource @default(manual)
+  planningId String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  planning Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+}
+
+model Solution {
+  id         String         @id @default(cuid())
+  score      Float?
+  status     SolutionStatus @default(pending)
+  planningId String
+  createdAt  DateTime       @default(now())
+
+  planning    Planning     @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  employeeId  String
+  shiftTypeId String
+  solutionId  String
+
+  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shiftType ShiftType @relation(fields: [shiftTypeId], references: [id], onDelete: Cascade)
+  solution  Solution  @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@unique([solutionId, employeeId, date])
+}
