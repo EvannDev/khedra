@@ -27,7 +27,7 @@ export function InviteSection({ teamId, inviteToken, isAdmin }: InviteSectionPro
     setError("")
     const result = await generateInviteToken(teamId)
     if (result && "error" in result) {
-      setError(result.error)
+      setError(result.error ?? "An error occurred")
     } else {
       router.refresh()
     }
