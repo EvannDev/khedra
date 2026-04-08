@@ -68,8 +68,10 @@ docs: add architecture diagram
 ## Database Changes
 
 1. Edit `apps/web/prisma/schema.prisma`
-2. Run `pnpm prisma migrate dev --name <description>`
-3. Commit both the schema and the generated migration file
+2. Apply the migration:
+   - **Interactive terminal**: `npx prisma migrate dev --name <description>`
+   - **Non-interactive / quick dev**: `npx prisma db push` (no migration file created)
+3. Commit both the schema and the generated migration file (when using `migrate dev`)
 
 Never edit migration files manually after they've been applied.
 
@@ -89,6 +91,7 @@ Never edit migration files manually after they've been applied.
 | `DATABASE_URL` | `apps/web` | Pooled Prisma connection |
 | `DIRECT_URL` | `apps/web` | Direct connection for migrations |
 | `RESEND_API_KEY` / `RESEND_FROM` | `apps/web` | Magic link emails |
+| `NEXT_PUBLIC_APP_URL` | `apps/web` | Base URL used in invite links (e.g. `http://localhost:3000`) |
 | `INTERNAL_API_SECRET` | both | Shared secret between Next.js and solver |
 
 ## Pull Requests

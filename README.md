@@ -10,6 +10,8 @@ Khedra is a SaaS for shift planning optimization. It uses constraint-based optim
 - **Auto-generated schedules** — OR-Tools CP-SAT solver finds the optimal assignment in seconds
 - **Natural language constraints** — describe rules in plain English, Khedra translates them into structured constraints
 - **Team management** — multi-team support with role-based access (admin, manager, viewer)
+- **Invite links** — admins share a single-use URL to onboard new team members
+- **Employee linking** — team members can be linked to their employee profile to view their own schedule
 - **Magic link auth** — passwordless sign-in via email, plus Google OAuth
 
 ## Stack
@@ -59,14 +61,15 @@ cp apps/web/.env.example apps/web/.env.local
 Fill in the required values in `apps/web/.env.local`:
 
 ```env
-AUTH_SECRET=          # openssl rand -base64 32
+AUTH_SECRET=              # openssl rand -base64 32
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 DATABASE_URL=
 DIRECT_URL=
 RESEND_API_KEY=
 RESEND_FROM=
-INTERNAL_API_SECRET=  # openssl rand -hex 32
+INTERNAL_API_SECRET=      # openssl rand -hex 32
+NEXT_PUBLIC_APP_URL=      # e.g. http://localhost:3000
 ```
 
 ### 3. Set up the database

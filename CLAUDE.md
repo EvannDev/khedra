@@ -93,8 +93,10 @@ cd services/solver && source .venv/bin/activate && uvicorn main:app --reload --p
 
 ## Current Status
 
-- Phase 0 in progress
-- Monorepo initialized (Turborepo + pnpm)
-- Next.js + ShadCN configured
-- FastAPI solver skeleton created
-- Auth + DB not yet set up
+- **Phase 0** ✅ — Monorepo, auth (magic link + Google), Prisma + Supabase, deploy pipeline
+- **Phase 1** ✅ — Team, Employee, ShiftType, Planning CRUD via server actions
+  - Extras: delete team confirmation, invite links, member→employee linking, personal schedule view
+- **Phase 2** ⬜ — Constraint system (next)
+- **Phase 3** ⬜ — OR-Tools solver integration
+- **Phase 4** ⬜ — LLM constraint creation
+- **Phase 5** ⬜ — Polish & launch

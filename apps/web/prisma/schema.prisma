@@ -23,6 +23,7 @@ model User {
   accounts    Account[]
   sessions    Session[]
   teamMembers TeamMember[]
+  employees   Employee[]
 }
 
 model Account {
@@ -107,8 +108,10 @@ enum SolutionStatus {
 // ─── Domain models ──────────────────────────────────────────────────────────
 
 model Team {
-  id        String   @id @default(cuid())
-  name      String
+  id          String  @id @default(cuid())
+  name        String
+  inviteToken String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -137,10 +140,12 @@ model Employee {
   role      String
   skills    String[]
   teamId    String
+  userId    String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   assignments Assignment[]
 }
 

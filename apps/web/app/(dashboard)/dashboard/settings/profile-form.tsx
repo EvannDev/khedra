@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import { profileSchema, type ProfileInput } from "@/lib/schemas/profile"
 import { updateProfile } from "@/app/actions/update-profile"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ export function ProfileForm({ initialName, email, avatarUrl }: ProfileFormProps)
   const [saved, setSaved] = useState(false)
 
   const form = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+    resolver: standardSchemaResolver(profileSchema),
     defaultValues: { name: initialName },
   })
 

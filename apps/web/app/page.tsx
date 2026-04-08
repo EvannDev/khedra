@@ -97,7 +97,7 @@ export default async function LandingPage() {
 
           {/* Sub */}
           <p className="lp-sub lp-fade" style={{ animationDelay: "160ms" }}>
-            Khedra generates optimal shift schedules from your constraints — hours, skills,
+            Khedra generates optimal shift schedules from your constraints - hours, skills,
             availability, and fairness rules. Describe rules in plain English. Get a perfect
             schedule in seconds.
           </p>

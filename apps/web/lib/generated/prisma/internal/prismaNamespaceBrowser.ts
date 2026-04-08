@@ -136,6 +136,7 @@ export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFi
 export const TeamScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  inviteToken: 'inviteToken',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -160,6 +161,7 @@ export const EmployeeScalarFieldEnum = {
   role: 'role',
   skills: 'skills',
   teamId: 'teamId',
+  userId: 'userId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

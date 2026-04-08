@@ -59,27 +59,29 @@ A stateless microservice that solves constraint satisfaction problems using Goog
 ## Data Model
 
 ```
-User ──< TeamMember >── Team
-                         │
-                    ┌────┴─────┐
-                    │          │
-                 Employee   Planning ──< Constraint
-                    │          │
-                    └────┬─────┘
-                         │
-                      Solution ──< Assignment
-                                       │
-                                   ShiftType
+User ──< TeamMember >── Team (inviteToken)
+ │                       │
+ │                  ┌────┴─────┐
+ │                  │          │
+ └──> Employee   Planning ──< Constraint
+         │          │
+         └────┬─────┘
+              │
+           Solution ──< Assignment
+                            │
+                        ShiftType
 ```
+
+`User` optionally links to an `Employee` record via `Employee.userId`, allowing team members to view their own schedule.
 
 ### Core entities
 
 | Entity | Key fields |
 |--------|-----------|
 | `User` | id, email, name, role (admin/manager/viewer) |
-| `Team` | id, name |
+| `Team` | id, name, inviteToken (nullable) |
 | `TeamMember` | userId, teamId, role |
-| `Employee` | id, name, role, skills[], teamId |
+| `Employee` | id, name, role, skills[], teamId, userId (nullable — links to User) |
 | `ShiftType` | id, name, startTime, endTime, color |
 | `Planning` | id, name, startDate, endDate, status |
 | `Constraint` | id, type, params (JSON), scope, source (manual/llm) |
@@ -101,6 +103,8 @@ User ──< TeamMember >── Team
 ```
 
 Session data is stored in a signed JWT cookie (not database sessions). The `id` field is added via a custom `jwt` callback.
+
+Route protection is handled by the `authorized` callback in `auth.config.ts` (not middleware), which redirects unauthenticated requests from `/dashboard/*` to `/sign-in`.
 
 ---
 
