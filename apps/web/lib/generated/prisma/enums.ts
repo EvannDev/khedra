@@ -36,7 +36,8 @@ export const ConstraintType = {
   required_skill: 'required_skill',
   weekend_fairness: 'weekend_fairness',
   shift_preference: 'shift_preference',
-  min_employees_per_shift: 'min_employees_per_shift'
+  min_employees_per_shift: 'min_employees_per_shift',
+  holiday: 'holiday'
 } as const
 
 export type ConstraintType = (typeof ConstraintType)[keyof typeof ConstraintType]

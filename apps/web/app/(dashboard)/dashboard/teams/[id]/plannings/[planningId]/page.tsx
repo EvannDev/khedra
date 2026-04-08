@@ -2,10 +2,10 @@ import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { RiArrowLeftLine, RiCalendarLine, RiSettings4Line, RiFlowChart } from "@remixicon/react"
+import { RiArrowLeftLine, RiFlowChart } from "@remixicon/react"
 import { planningStatusVariant } from "@/lib/planning-utils"
 import { pluralize } from "@/lib/utils"
+import { ConstraintList } from "@/components/teams/constraint-list"
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -26,11 +26,28 @@ export default async function PlanningDetailPage({
   const planning = await prisma.planning.findUnique({
     where: { id: planningId, teamId: id },
     include: {
-      _count: { select: { constraints: true, solutions: true } },
+      _count: { select: { solutions: true } },
     },
   })
 
   if (!planning) notFound()
+
+  const [constraints, employees, shiftTypes] = await Promise.all([
+    prisma.constraint.findMany({
+      where: { planningId },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.employee.findMany({
+      where: { teamId: id },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.shiftType.findMany({
+      where: { teamId: id },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ])
 
   const durationDays = Math.round(
     (planning.endDate.getTime() - planning.startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -73,25 +90,14 @@ export default async function PlanningDetailPage({
         </div>
       </div>
 
-      {/* Constraints placeholder */}
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <RiSettings4Line className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">Constraints</p>
-            <p className="text-xs text-muted-foreground">
-              {planning._count.constraints > 0
-                ? `${pluralize(planning._count.constraints, "constraint")} defined`
-                : "No constraints yet"}
-            </p>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Constraint management coming in Phase 2.
-        </p>
-      </div>
+      {/* Constraints */}
+      <ConstraintList
+        teamId={id}
+        planningId={planningId}
+        constraints={constraints}
+        employees={employees}
+        shiftTypes={shiftTypes}
+      />
 
       {/* Solver placeholder */}
       <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8">

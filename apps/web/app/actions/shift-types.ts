@@ -11,7 +11,7 @@ export async function createShiftType(teamId: string, data: unknown) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   const parsed = shiftTypeSchema.safeParse(data)
   if (!parsed.success) {
@@ -37,7 +37,7 @@ export async function updateShiftType(
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   const parsed = shiftTypeSchema.safeParse(data)
   if (!parsed.success) {
@@ -60,7 +60,7 @@ export async function deleteShiftType(teamId: string, shiftTypeId: string) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   try {
     await prisma.shiftType.delete({ where: { id: shiftTypeId, teamId } })

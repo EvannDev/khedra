@@ -11,7 +11,7 @@ export async function createPlanning(teamId: string, data: unknown) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   const parsed = planningSchema.safeParse(data)
   if (!parsed.success) {
@@ -42,7 +42,7 @@ export async function updatePlanning(
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   const parsed = planningSchema.safeParse(data)
   if (!parsed.success) {
@@ -69,7 +69,7 @@ export async function deletePlanning(teamId: string, planningId: string) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
 
   try {
     await prisma.planning.delete({ where: { id: planningId, teamId } })

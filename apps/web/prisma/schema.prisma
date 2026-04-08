@@ -86,6 +86,7 @@ enum ConstraintType {
   weekend_fairness
   shift_preference
   min_employees_per_shift
+  holiday
 }
 
 enum ConstraintScope {
