@@ -2,10 +2,13 @@ import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { RiArrowLeftLine, RiFlowChart } from "@remixicon/react"
+import { RiArrowLeftLine, RiCalendarLine, RiTimeLine } from "@remixicon/react"
 import { planningStatusVariant } from "@/lib/planning-utils"
 import { pluralize } from "@/lib/utils"
+import { CONSTRAINT_TYPE_LABELS } from "@/lib/constraint-utils"
+import type { ConstraintType } from "@/lib/generated/prisma/enums"
 import { ConstraintList } from "@/components/teams/constraint-list"
+import { SolutionView } from "@/components/teams/solution-view"
 
 function formatDate(date: Date) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -32,10 +35,9 @@ export default async function PlanningDetailPage({
 
   if (!planning) notFound()
 
-  const [constraints, employees, shiftTypes] = await Promise.all([
+  const [constraints, employees, shiftTypes, latestSolution] = await Promise.all([
     prisma.constraint.findMany({
       where: { planningId },
-      orderBy: { createdAt: "asc" },
     }),
     prisma.employee.findMany({
       where: { teamId: id },
@@ -44,10 +46,21 @@ export default async function PlanningDetailPage({
     }),
     prisma.shiftType.findMany({
       where: { teamId: id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, color: true, startTime: true, endTime: true },
       orderBy: { name: "asc" },
     }),
+    prisma.solution.findFirst({
+      where: { planningId },
+      orderBy: { createdAt: "desc" },
+      include: { assignments: true },
+    }),
   ])
+
+  constraints.sort((a, b) =>
+    CONSTRAINT_TYPE_LABELS[a.type as ConstraintType].localeCompare(
+      CONSTRAINT_TYPE_LABELS[b.type as ConstraintType]
+    )
+  )
 
   const durationDays = Math.round(
     (planning.endDate.getTime() - planning.startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -56,36 +69,45 @@ export default async function PlanningDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/dashboard/teams/${id}/plannings`}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <RiArrowLeftLine className="size-3.5" />
-              Plannings
-            </Link>
-          </div>
-          <h2 className="text-xl font-bold tracking-tight">{planning.name}</h2>
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <Link
+            href={`/dashboard/teams/${id}/plannings`}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <RiArrowLeftLine className="size-3.5" />
+            Plannings
+          </Link>
         </div>
-        <Badge variant={planningStatusVariant[planning.status] ?? "secondary"} className="mt-1">
-          {planning.status}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold tracking-tight">{planning.name}</h2>
+          <Badge variant={planningStatusVariant[planning.status] ?? "secondary"}>
+            {planning.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Info cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Start date</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card px-6 py-5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <RiCalendarLine className="size-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Start date</p>
+          </div>
           <p className="text-sm font-medium">{formatDate(planning.startDate)}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">End date</p>
+        <div className="rounded-xl border border-border bg-card px-6 py-5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <RiCalendarLine className="size-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">End date</p>
+          </div>
           <p className="text-sm font-medium">{formatDate(planning.endDate)}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Duration</p>
+        <div className="rounded-xl border border-border bg-card px-6 py-5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <RiTimeLine className="size-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Duration</p>
+          </div>
           <p className="text-sm font-medium">{pluralize(durationDays, "day")}</p>
         </div>
       </div>
@@ -99,25 +121,16 @@ export default async function PlanningDetailPage({
         shiftTypes={shiftTypes}
       />
 
-      {/* Solver placeholder */}
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 p-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <RiFlowChart className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">Schedule</p>
-            <p className="text-xs text-muted-foreground">
-              {planning._count.solutions > 0
-                ? `${pluralize(planning._count.solutions, "solution")} generated`
-                : "Not solved yet"}
-            </p>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Solver integration coming in Phase 3.
-        </p>
-      </div>
+      {/* Solver */}
+      <SolutionView
+        teamId={id}
+        planningId={planningId}
+        planning={planning}
+        employees={employees}
+        shiftTypes={shiftTypes}
+        latestSolution={latestSolution}
+        constraints={constraints}
+      />
     </div>
   )
 }

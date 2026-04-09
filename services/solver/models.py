@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class ConstraintType(str, Enum):
     max_hours_per_week = "max_hours_per_week"
+    max_hours_per_month = "max_hours_per_month"
     unavailability = "unavailability"
     min_rest_between_shifts = "min_rest_between_shifts"
     max_consecutive_days = "max_consecutive_days"
@@ -13,6 +14,15 @@ class ConstraintType(str, Enum):
     weekend_fairness = "weekend_fairness"
     shift_preference = "shift_preference"
     min_employees_per_shift = "min_employees_per_shift"
+    max_employees_per_shift = "max_employees_per_shift"
+    holiday = "holiday"
+    preferred_consecutive_days = "preferred_consecutive_days"
+    no_shift_alternation = "no_shift_alternation"
+    min_consecutive_days = "min_consecutive_days"
+    max_days_per_week = "max_days_per_week"
+    min_days_between_shifts = "min_days_between_shifts"
+    day_pairing = "day_pairing"
+    shift_coverage = "shift_coverage"
 
 
 class Employee(BaseModel):

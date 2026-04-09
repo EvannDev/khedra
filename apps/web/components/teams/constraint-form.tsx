@@ -7,19 +7,26 @@ import { useForm, useController, type Control } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import {
   maxHoursParamsSchema,
+  maxHoursPerMonthParamsSchema,
   unavailabilityParamsSchema,
   minRestParamsSchema,
   maxConsecutiveParamsSchema,
   requiredSkillParamsSchema,
   weekendFairnessParamsSchema,
   shiftPreferenceParamsSchema,
-  minEmployeesParamsSchema,
   holidayParamsSchema,
+  noShiftAlternationParamsSchema,
+  minConsecutiveDaysParamsSchema,
+  maxDaysPerWeekParamsSchema,
+  minDaysBetweenShiftsParamsSchema,
+  dayPairingParamsSchema,
+  shiftCoverageParamsSchema,
 } from "@/lib/schemas/constraint"
 import { Calendar } from "@/components/ui/calendar"
 import { RiCloseLine } from "@remixicon/react"
-import { CONSTRAINT_TYPE_LABELS } from "@/lib/constraint-utils"
-import { createConstraint } from "@/app/actions/constraints"
+import { CONSTRAINT_TYPE_LABELS, DEPRECATED_CONSTRAINT_TYPES } from "@/lib/constraint-utils"
+import { ConstraintCatalog } from "./constraint-catalog"
+import { createConstraint, updateConstraint } from "@/app/actions/constraints"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -54,26 +61,46 @@ type Day = (typeof DAYS)[number]["value"]
 
 const paramsSchemaMap: Record<ConstraintType, any> = {
   max_hours_per_week: maxHoursParamsSchema,
+  max_hours_per_month: maxHoursPerMonthParamsSchema,
   unavailability: unavailabilityParamsSchema,
   min_rest_between_shifts: minRestParamsSchema,
   max_consecutive_days: maxConsecutiveParamsSchema,
   required_skill: requiredSkillParamsSchema,
   weekend_fairness: weekendFairnessParamsSchema,
   shift_preference: shiftPreferenceParamsSchema,
-  min_employees_per_shift: minEmployeesParamsSchema,
   holiday: holidayParamsSchema,
+  no_shift_alternation: noShiftAlternationParamsSchema,
+  min_consecutive_days: minConsecutiveDaysParamsSchema,
+  max_days_per_week: maxDaysPerWeekParamsSchema,
+  min_days_between_shifts: minDaysBetweenShiftsParamsSchema,
+  day_pairing: dayPairingParamsSchema,
+  shift_coverage: shiftCoverageParamsSchema,
+  // Deprecated — kept for type completeness, not shown in form
+  min_employees_per_shift: minRestParamsSchema,
+  max_employees_per_shift: minRestParamsSchema,
+  preferred_consecutive_days: minRestParamsSchema,
 }
 
 const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
   max_hours_per_week: { max: 35 },
+  max_hours_per_month: { max: 140 },
   unavailability: { employee_id: "", days: [] },
   min_rest_between_shifts: { hours: 11 },
-  max_consecutive_days: { max: 5 },
+  max_consecutive_days: { max: 5, mode: "hard" },
   required_skill: { shift_type_id: "", skill: "" },
   weekend_fairness: { max_weekends_per_month: 2 },
-  shift_preference: { employee_id: "", shift_type_id: "", weight: "preferred" },
-  min_employees_per_shift: { shift_type_id: "", min: 2 },
+  shift_preference: { employee_id: "", shift_type_id: "", weight: "preferred", mode: "soft" },
   holiday: { dates: [], name: "", employee_id: "" },
+  no_shift_alternation: { penalty: 3 },
+  min_consecutive_days: { min: 2, mode: "soft" },
+  max_days_per_week: { max: 5, mode: "hard" },
+  min_days_between_shifts: { days: 2, consecutive: 1, mode: "hard" },
+  day_pairing: { days: ["sat", "sun"], mode: "hard" },
+  shift_coverage: { shift_type_id: "", min: "", max: "", mode: "hard" },
+  // Deprecated
+  min_employees_per_shift: {},
+  max_employees_per_shift: {},
+  preferred_consecutive_days: {},
 }
 
 interface ConstraintFormProps {
@@ -92,9 +119,13 @@ interface ParamsStepProps {
   shiftTypes: { id: string; name: string }[]
   onSuccess: () => void
   onBack: () => void
+  /** If provided, the form operates in edit mode and calls updateConstraint. */
+  constraintId?: string
+  /** Pre-populate form fields when editing an existing constraint. */
+  initialParams?: Record<string, unknown>
 }
 
-function ConstraintParamsStep({
+export function ConstraintParamsStep({
   type,
   teamId,
   planningId,
@@ -102,24 +133,39 @@ function ConstraintParamsStep({
   shiftTypes,
   onSuccess,
   onBack,
+  constraintId,
+  initialParams,
 }: ParamsStepProps) {
   const router = useRouter()
   const [serverError, setServerError] = useState("")
-  const [holidayScope, setHolidayScope] = useState<"all" | "employee">("all")
+  const [holidayScope, setHolidayScope] = useState<"all" | "employee">(
+    initialParams?.employee_id ? "employee" : "all"
+  )
 
   const form = useForm<any>({
     resolver: standardSchemaResolver(paramsSchemaMap[type]),
-    defaultValues: defaultValuesMap[type],
+    defaultValues: initialParams
+      ? { ...defaultValuesMap[type], ...initialParams }
+      : defaultValuesMap[type],
   })
 
   async function onSubmit(params: any) {
     setServerError("")
-    // Strip empty employee_id before saving
     const cleanParams = { ...params }
     if (type === "holiday" && !cleanParams.employee_id) delete cleanParams.employee_id
     if (type === "holiday" && !cleanParams.name) delete cleanParams.name
-    const scope = type === "holiday" ? holidayScope : "all"
-    const result = await createConstraint(teamId, planningId, { type, params: cleanParams }, scope)
+    if (type === "shift_coverage") {
+      if (cleanParams.min === "" || cleanParams.min === undefined) delete cleanParams.min
+      if (cleanParams.max === "" || cleanParams.max === undefined) delete cleanParams.max
+    }
+
+    let result
+    if (constraintId) {
+      result = await updateConstraint(teamId, planningId, constraintId, { type, params: cleanParams })
+    } else {
+      const scope = type === "holiday" ? holidayScope : "all"
+      result = await createConstraint(teamId, planningId, { type, params: cleanParams }, scope)
+    }
     if ("error" in result) {
       setServerError(result.error ?? "An error occurred")
       return
@@ -157,6 +203,23 @@ function ConstraintParamsStep({
           />
         )}
 
+        {/* max_hours_per_month */}
+        {type === "max_hours_per_month" && (
+          <FormField
+            control={control}
+            name="max"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max hours per month</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} placeholder="e.g. 140" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {/* min_rest_between_shifts */}
         {type === "min_rest_between_shifts" && (
           <FormField
@@ -176,19 +239,48 @@ function ConstraintParamsStep({
 
         {/* max_consecutive_days */}
         {type === "max_consecutive_days" && (
-          <FormField
-            control={control}
-            name="max"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Max consecutive days</FormLabel>
-                <FormControl>
-                  <Input type="number" min={1} placeholder="e.g. 5" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
+            <FormField
+              control={control}
+              name="max"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max consecutive days</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} placeholder="e.g. 5" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
 
         {/* weekend_fairness */}
@@ -285,6 +377,33 @@ function ConstraintParamsStep({
         {/* shift_preference */}
         {type === "shift_preference" && (
           <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+              </div>
+            </div>
             <FormField
               control={control}
               name="employee_id"
@@ -357,9 +476,36 @@ function ConstraintParamsStep({
           </>
         )}
 
-        {/* min_employees_per_shift */}
-        {type === "min_employees_per_shift" && (
+        {/* shift_coverage */}
+        {type === "shift_coverage" && (
           <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
             <FormField
               control={control}
               name="shift_type_id"
@@ -384,20 +530,248 @@ function ConstraintParamsStep({
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={control}
+                name="min"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Min employees{" "}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} placeholder="e.g. 2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="max"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Max employees{" "}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} placeholder="e.g. 5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </>
+        )}
+
+        {/* min_consecutive_days */}
+        {type === "min_consecutive_days" && (
+          <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
             <FormField
               control={control}
               name="min"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum employees</FormLabel>
+                  <FormLabel>Min consecutive days</FormLabel>
                   <FormControl>
-                    <Input type="number" min={1} placeholder="e.g. 2" {...field} />
+                    <Input type="number" min={2} placeholder="e.g. 2" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </>
+        )}
+
+        {/* max_days_per_week */}
+        {type === "max_days_per_week" && (
+          <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
+            <FormField
+              control={control}
+              name="max"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max working days per week</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} max={7} placeholder="e.g. 5" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        {/* min_days_between_shifts */}
+        {type === "min_days_between_shifts" && (
+          <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={control}
+                name="consecutive"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Consecutive shifts</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={14} placeholder="e.g. 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="days"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Min days off after</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={14} placeholder="e.g. 2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              After <strong>{form.watch("consecutive") || 1}</strong> consecutive shift{(form.watch("consecutive") || 1) > 1 ? "s" : ""}, require at least <strong>{form.watch("days") || "?"}</strong> day{(form.watch("days") || 1) > 1 ? "s" : ""} off.
+            </p>
+          </>
+        )}
+
+        {/* day_pairing */}
+        {type === "day_pairing" && (
+          <>
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">Mode</p>
+              <div className="flex rounded-md border border-input overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "hard")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "hard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Hard — strictly enforced
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("mode", "soft")}
+                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                    form.watch("mode") === "soft"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  Soft — preferred
+                </button>
+              </div>
+            </div>
+            <DaysField control={control} label="Days to pair (all or none)" />
+          </>
+        )}
+
+        {/* no_shift_alternation */}
+        {type === "no_shift_alternation" && (
+          <FormField
+            control={control}
+            name="penalty"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Penalty per alternation</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} max={10} placeholder="e.g. 3" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
 
         {/* holiday */}
@@ -491,10 +865,10 @@ function ConstraintParamsStep({
             {form.formState.isSubmitting ? (
               <>
                 <span className="size-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
-                Adding…
+                {constraintId ? "Saving…" : "Adding…"}
               </>
             ) : (
-              "Add constraint"
+              constraintId ? "Save changes" : "Add constraint"
             )}
           </Button>
         </div>
@@ -566,7 +940,7 @@ function HolidayDatesField({ control }: { control: Control<any> }) {
   )
 }
 
-function DaysField({ control }: { control: Control<any> }) {
+function DaysField({ control, label = "Unavailable days" }: { control: Control<any>; label?: string }) {
   const { field, fieldState } = useController({
     control,
     name: "days",
@@ -582,7 +956,7 @@ function DaysField({ control }: { control: Control<any> }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium leading-none">Unavailable days</p>
+      <p className="text-sm font-medium leading-none">{label}</p>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {DAYS.map(({ value, label }) => (
           <label
@@ -614,8 +988,6 @@ export function ConstraintForm({
   const [step, setStep] = useState<"type" | "params">("type")
   const [selectedType, setSelectedType] = useState<ConstraintType | "">("")
 
-  const CONSTRAINT_TYPES = Object.keys(CONSTRAINT_TYPE_LABELS) as ConstraintType[]
-
   if (step === "params" && selectedType) {
     return (
       <ConstraintParamsStep
@@ -632,31 +1004,11 @@ export function ConstraintForm({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">Constraint type</label>
-        <Select
-          value={selectedType}
-          onValueChange={(v) => setSelectedType(v as ConstraintType)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select a constraint type" />
-          </SelectTrigger>
-          <SelectContent>
-            {CONSTRAINT_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {CONSTRAINT_TYPE_LABELS[type]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex justify-end pt-2">
-        <Button onClick={() => setStep("params")} disabled={!selectedType}>
-          Next
-        </Button>
-      </div>
-    </div>
+    <ConstraintCatalog
+      onSelect={(type) => {
+        setSelectedType(type)
+        setStep("params")
+      }}
+    />
   )
 }

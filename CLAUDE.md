@@ -59,13 +59,16 @@ khedra/
 ## Constraint Types (MVP)
 
 1. `max_hours_per_week` — `{ max: 35 }`
-2. `unavailability` — `{ employee_id, days: ["monday"] }`
+2. `unavailability` — `{ employee_id, days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }` (**3-char abbreviations only**)
 3. `min_rest_between_shifts` — `{ hours: 11 }`
 4. `max_consecutive_days` — `{ max: 5 }`
 5. `required_skill` — `{ shift_type_id, skill: "manager" }`
 6. `weekend_fairness` — `{ max_weekends_per_month: 2 }`
-7. `shift_preference` — `{ employee_id, shift_type_id, weight: "preferred" }`
+7. `shift_preference` — `{ employee_id, shift_type_id, weight: "preferred" }` (soft)
 8. `min_employees_per_shift` — `{ shift_type_id, min: 2 }`
+9. `max_employees_per_shift` — `{ shift_type_id, max: 3, mode: "hard" | "soft" }`
+10. `holiday` — `{ dates: ["YYYY-MM-DD"], employee_id?: string }` (omit `employee_id` for public holiday)
+11. `preferred_consecutive_days` — `{ days: 3 }` (soft)
 
 ## MVP Phases
 
@@ -91,12 +94,20 @@ cd apps/web && pnpm dev
 cd services/solver && source .venv/bin/activate && uvicorn main:app --reload --port 8000
 ```
 
+## Dev — Solver Tests
+
+```bash
+cd services/solver && source .venv/bin/activate && python -m pytest test_solver.py -v
+```
+
+Tests cover all constraint types, infeasible scenarios, helper functions, and multi-constraint interactions.
+
 ## Current Status
 
 - **Phase 0** ✅ — Monorepo, auth (magic link + Google), Prisma + Supabase, deploy pipeline
 - **Phase 1** ✅ — Team, Employee, ShiftType, Planning CRUD via server actions
   - Extras: delete team confirmation, invite links, member→employee linking, personal schedule view
-- **Phase 2** ⬜ — Constraint system (next)
-- **Phase 3** ⬜ — OR-Tools solver integration
+- **Phase 2** ✅ — Constraint system: schema, builder UI, validation
+- **Phase 3** ✅ — OR-Tools solver integration: CP-SAT solver, solution view, solver tests
 - **Phase 4** ⬜ — LLM constraint creation
 - **Phase 5** ⬜ — Polish & launch

@@ -95,10 +95,19 @@ export async function linkMemberToEmployee(
 
   try {
     if (employeeId) {
-      await prisma.employee.update({
-        where: { id: employeeId, teamId },
-        data: { userId: memberUserId },
-      })
+      // Unlink any employee currently linked to this user, then link the new one.
+      // Must be sequential: the unique constraint on userId would reject the second
+      // update if the first hasn't cleared the old value yet.
+      await prisma.$transaction([
+        prisma.employee.updateMany({
+          where: { teamId, userId: memberUserId },
+          data: { userId: null },
+        }),
+        prisma.employee.update({
+          where: { id: employeeId, teamId },
+          data: { userId: memberUserId },
+        }),
+      ])
     } else {
       await prisma.employee.updateMany({
         where: { teamId, userId: memberUserId },

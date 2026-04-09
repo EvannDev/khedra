@@ -47,6 +47,37 @@ export async function createConstraint(
   }
 }
 
+export async function updateConstraint(
+  teamId: string,
+  planningId: string,
+  constraintId: string,
+  data: unknown
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/sign-in")
+
+  const member = await requireTeamMember(teamId, session.user.id)
+  if (!member || member.role === "viewer") return { error: "Forbidden" }
+
+  const planning = await verifyPlanningOwnership(planningId, teamId)
+  if (!planning) return { error: "Not found" }
+
+  const parsed = constraintSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
+  }
+
+  try {
+    const constraint = await prisma.constraint.update({
+      where: { id: constraintId, planningId },
+      data: { params: parsed.data.params },
+    })
+    return { success: true as const, constraint }
+  } catch {
+    return { error: "Failed to update constraint." }
+  }
+}
+
 export async function toggleConstraint(
   teamId: string,
   planningId: string,

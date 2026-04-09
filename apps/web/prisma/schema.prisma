@@ -79,6 +79,7 @@ enum PlanningStatus {
 
 enum ConstraintType {
   max_hours_per_week
+  max_hours_per_month
   unavailability
   min_rest_between_shifts
   max_consecutive_days
@@ -86,7 +87,15 @@ enum ConstraintType {
   weekend_fairness
   shift_preference
   min_employees_per_shift
+  max_employees_per_shift
   holiday
+  preferred_consecutive_days
+  no_shift_alternation
+  min_consecutive_days
+  max_days_per_week
+  min_days_between_shifts
+  day_pairing
+  shift_coverage
 }
 
 enum ConstraintScope {

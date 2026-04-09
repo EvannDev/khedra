@@ -19,7 +19,7 @@ export function InviteSection({ teamId, inviteToken, isAdmin }: InviteSectionPro
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState("")
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const appUrl = typeof window !== "undefined" ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL ?? "")
   const inviteUrl = inviteToken ? `${appUrl}/invite/${inviteToken}` : null
 
   async function handleGenerate() {
