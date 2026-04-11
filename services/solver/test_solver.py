@@ -481,6 +481,48 @@ class TestHoliday:
         # e2 may still work that day — just verify the solver ran
         assert resp.assignments is not None
 
+    def test_public_holiday_does_not_conflict_with_hard_shift_coverage(self):
+        """A public holiday + hard min shift coverage must remain feasible."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("s1")]
+        holiday_date = "2025-01-08"  # Wednesday — inside the default request window
+        constraints = [
+            Constraint(
+                type=ConstraintType.holiday,
+                params={"dates": [holiday_date]},
+            ),
+            Constraint(
+                type=ConstraintType.shift_coverage,
+                params={"shift_type_id": "s1", "min": 1, "mode": "hard"},
+            ),
+        ]
+        req = make_request(employees=emps, shift_types=shifts, constraints=constraints)
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        for a in resp.assignments:
+            assert a.date.isoformat() != holiday_date
+
+    def test_public_holiday_does_not_conflict_with_min_employees_per_shift(self):
+        """A public holiday + hard min_employees_per_shift must remain feasible."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("s1")]
+        holiday_date = "2025-01-08"
+        constraints = [
+            Constraint(
+                type=ConstraintType.holiday,
+                params={"dates": [holiday_date]},
+            ),
+            Constraint(
+                type=ConstraintType.min_employees_per_shift,
+                params={"shift_type_id": "s1", "min": 1},
+            ),
+        ]
+        req = make_request(employees=emps, shift_types=shifts, constraints=constraints)
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        for a in resp.assignments:
+            assert a.date.isoformat() != holiday_date
+
 
 # ---------------------------------------------------------------------------
 # Constraint: min_rest_between_shifts

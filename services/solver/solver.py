@@ -48,6 +48,13 @@ def solve(request: SolveRequest) -> SolveResponse:
         for d_idx in range(len(days)):
             model.add_at_most_one(x[emp_id][d_idx][s_id] for s_id in shift_ids)
 
+    # Pre-compute public holiday dates (no employee_id = applies to all)
+    # Used to skip hard coverage minimums that would conflict with holidays.
+    public_holiday_dates: set[str] = set()
+    for c in active_constraints:
+        if c.type == ConstraintType.holiday and not c.params.get("employee_id"):
+            public_holiday_dates.update(c.params.get("dates", []))
+
     for constraint in active_constraints:
         params = constraint.params
         ctype = constraint.type
@@ -223,7 +230,9 @@ def solve(request: SolveRequest) -> SolveResponse:
             max_emp = params.get("max")
             mode = params.get("mode", "hard")
             if shift_id and shift_id in shift_ids:
-                for d_idx in range(len(days)):
+                for d_idx, d in enumerate(days):
+                    if d.isoformat() in public_holiday_dates:
+                        continue
                     count = sum(x[emp_id][d_idx][shift_id] for emp_id in emp_ids)
                     if min_emp is not None:
                         min_emp = int(min_emp)
@@ -246,7 +255,9 @@ def solve(request: SolveRequest) -> SolveResponse:
             shift_id = params.get("shift_type_id")
             min_emp = params.get("min", 1)
             if shift_id and shift_id in shift_ids:
-                for d_idx in range(len(days)):
+                for d_idx, d in enumerate(days):
+                    if d.isoformat() in public_holiday_dates:
+                        continue
                     model.add(
                         sum(x[emp_id][d_idx][shift_id] for emp_id in emp_ids) >= min_emp
                     )

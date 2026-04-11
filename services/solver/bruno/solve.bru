@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: http://localhost:8000/solve
+  url: {{host}}/solve
   body: json
   auth: none
+}
+
+headers {
+  X-internal-Token:  25b6e7e4c51ee5b609df22a49a6c52a3cd0c40e4a724098e50bb7407ba38f56f
 }
 
 body:json {
