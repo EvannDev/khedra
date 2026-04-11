@@ -41,7 +41,7 @@ export default async function PlanningDetailPage({
     }),
     prisma.employee.findMany({
       where: { teamId: id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, skills: true },
       orderBy: { name: "asc" },
     }),
     prisma.shiftType.findMany({

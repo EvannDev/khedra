@@ -627,6 +627,25 @@ class TestRequiredSkill:
         resp = solve(req)
         assert resp.status == SolveStatus.infeasible
 
+    def test_skill_comparison_is_case_insensitive(self):
+        """Constraint 'Manager' must match employee skill 'manager'."""
+        skilled = make_employee("e1", skills=["manager"])
+        unskilled = make_employee("e2", skills=[])
+        shift = make_shift("s1")
+        c = Constraint(
+            type=ConstraintType.required_skill,
+            params={"shift_type_id": "s1", "skill": "Manager"},  # capital M
+        )
+        req = make_request(
+            employees=[skilled, unskilled],
+            shift_types=[shift],
+            constraints=[c],
+        )
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        for a in resp.assignments:
+            assert a.employee_id == "e1", "unskilled employee assigned despite case-insensitive skill check"
+
 
 # ---------------------------------------------------------------------------
 # Constraint: min_employees_per_shift
@@ -1120,3 +1139,58 @@ class TestMinDaysBetweenShifts:
         )
         resp = solve(req)
         assert resp.status == SolveStatus.solved
+
+
+# ---------------------------------------------------------------------------
+# TestMaxShiftsPerDay
+# ---------------------------------------------------------------------------
+
+class TestMaxShiftsPerDay:
+    def test_default_at_most_one_shift_per_day(self):
+        """Without the constraint, an employee can work at most 1 shift per day."""
+        emp = [make_employee("e1")]
+        shifts = [make_shift("s1", start_h=8, end_h=12), make_shift("s2", start_h=14, end_h=18)]
+        req = make_request(employees=emp, shift_types=shifts, constraints=[],
+                           start=date(2025, 1, 6), end=date(2025, 1, 6))
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        assert len(resp.assignments) <= 1
+
+    def test_allows_two_shifts_same_day(self):
+        """With max_shifts_per_day=2, an employee can work 2 non-overlapping shifts the same day."""
+        emp = [make_employee("e1")]
+        shifts = [make_shift("s1", start_h=8, end_h=12), make_shift("s2", start_h=14, end_h=18)]
+        c_max = Constraint(type=ConstraintType.max_shifts_per_day, params={"max": 2})
+        # min_rest = 2h so 8–12 then 14–18 (2h gap) is allowed
+        c_rest = Constraint(type=ConstraintType.min_rest_between_shifts, params={"hours": 2})
+        req = make_request(employees=emp, shift_types=shifts, constraints=[c_max, c_rest],
+                           start=date(2025, 1, 6), end=date(2025, 1, 6))
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        assert len(resp.assignments) == 2
+
+    def test_scoped_to_employee(self):
+        """max_shifts_per_day scoped to e1 does not affect e2."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("s1", start_h=8, end_h=12), make_shift("s2", start_h=14, end_h=18)]
+        c = Constraint(type=ConstraintType.max_shifts_per_day, params={"max": 2, "employee_id": "e1"})
+        c_rest = Constraint(type=ConstraintType.min_rest_between_shifts, params={"hours": 1})
+        req = make_request(employees=emps, shift_types=shifts, constraints=[c, c_rest],
+                           start=date(2025, 1, 6), end=date(2025, 1, 6))
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        e2_assignments = [a for a in resp.assignments if a.employee_id == "e2"]
+        assert len(e2_assignments) <= 1
+
+    def test_same_day_rest_blocks_second_shift(self):
+        """With max_shifts_per_day=2 but only 2h gap and min_rest=4h, second shift is blocked."""
+        emp = [make_employee("e1")]
+        # s1 ends at 12, s2 starts at 14 → only 2h gap
+        shifts = [make_shift("s1", start_h=8, end_h=12), make_shift("s2", start_h=14, end_h=18)]
+        c_max = Constraint(type=ConstraintType.max_shifts_per_day, params={"max": 2})
+        c_rest = Constraint(type=ConstraintType.min_rest_between_shifts, params={"hours": 4})
+        req = make_request(employees=emp, shift_types=shifts, constraints=[c_max, c_rest],
+                           start=date(2025, 1, 6), end=date(2025, 1, 6))
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+        assert len(resp.assignments) <= 1

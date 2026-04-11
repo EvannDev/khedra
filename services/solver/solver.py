@@ -43,10 +43,28 @@ def solve(request: SolveRequest) -> SolveResponse:
                     f"x_{emp_id}_{d_idx}_{shift_id}"
                 )
 
-    # Hard constraint: at most one shift per employee per day
+    # Per-employee max shifts per day (default: 1)
+    global_max_vals = [
+        int(c.params.get("max", 2))
+        for c in active_constraints
+        if c.type == ConstraintType.max_shifts_per_day and not c.params.get("employee_id")
+    ]
+    max_shifts_global = min(global_max_vals) if global_max_vals else 1
+    max_shifts_by_emp: dict[str, int] = {}
+    for c in active_constraints:
+        if c.type == ConstraintType.max_shifts_per_day:
+            eid = c.params.get("employee_id")
+            if eid:
+                val = int(c.params.get("max", 2))
+                max_shifts_by_emp[eid] = min(max_shifts_by_emp.get(eid, val), val)
+
     for emp_id in emp_ids:
+        limit = max_shifts_by_emp.get(emp_id, max_shifts_global)
         for d_idx in range(len(days)):
-            model.add_at_most_one(x[emp_id][d_idx][s_id] for s_id in shift_ids)
+            if limit == 1:
+                model.add_at_most_one(x[emp_id][d_idx][s_id] for s_id in shift_ids)
+            else:
+                model.add(sum(x[emp_id][d_idx][s_id] for s_id in shift_ids) <= limit)
 
     # Pre-compute public holiday dates (no employee_id = applies to all)
     # Used to skip hard coverage minimums that would conflict with holidays.
@@ -155,7 +173,7 @@ def solve(request: SolveRequest) -> SolveResponse:
 
         elif ctype == ConstraintType.min_rest_between_shifts:
             min_rest_minutes = int(params.get("hours", 11) * 60)
-            # For each consecutive day pair, forbid shift combos that violate the rest
+            # Consecutive-day pairs
             for d_idx in range(len(days) - 1):
                 for s1 in shifts:
                     # End of s1 relative to midnight of day d (overnight shifts extend past 24*60)
@@ -172,6 +190,29 @@ def solve(request: SolveRequest) -> SolveResponse:
                                 model.add(
                                     x[emp_id][d_idx][s1.id] + x[emp_id][d_idx + 1][s2.id] <= 1
                                 )
+            # Same-day pairs (relevant when max_shifts_per_day > 1)
+            # Pre-compute violating pairs once — shift times don't change per day
+            same_day_violations: list[tuple[str, str]] = []
+            for s1 in shifts:
+                s1_start = s1.start_time.hour * 60 + s1.start_time.minute
+                s1_end   = s1.end_time.hour   * 60 + s1.end_time.minute
+                if s1_end <= s1_start:  # overnight — skip same-day pairing
+                    continue
+                for s2 in shifts:
+                    if s2.id == s1.id:
+                        continue
+                    s2_start = s2.start_time.hour * 60 + s2.start_time.minute
+                    s2_end   = s2.end_time.hour   * 60 + s2.end_time.minute
+                    if s2_end <= s2_start:  # overnight — skip
+                        continue
+                    if s2_start <= s1_end:  # s2 overlaps or starts before s1 ends
+                        continue
+                    if s2_start - s1_end < min_rest_minutes:
+                        same_day_violations.append((s1.id, s2.id))
+            for d_idx in range(len(days)):
+                for s1_id, s2_id in same_day_violations:
+                    for emp_id in emp_ids:
+                        model.add(x[emp_id][d_idx][s1_id] + x[emp_id][d_idx][s2_id] <= 1)
 
         elif ctype == ConstraintType.max_consecutive_days:
             max_consec = params.get("max", 5)
@@ -218,9 +259,10 @@ def solve(request: SolveRequest) -> SolveResponse:
             shift_id = params.get("shift_type_id")
             required = params.get("skill")
             if shift_id and required and shift_id in shift_ids:
+                required_lower = required.lower()
                 for emp_id in emp_ids:
                     emp = emp_by_id[emp_id]
-                    if required not in emp.skills:
+                    if required_lower not in [s.lower() for s in emp.skills]:
                         for d_idx in range(len(days)):
                             model.add(x[emp_id][d_idx][shift_id] == 0)
 
@@ -327,6 +369,9 @@ def solve(request: SolveRequest) -> SolveResponse:
                             model.add(mismatch >= ref_worked - d_worked)
                             model.add(mismatch >= d_worked - ref_worked)
                             objective_terms.append(-5 * mismatch)
+
+        elif ctype == ConstraintType.max_shifts_per_day:
+            pass  # handled in pre-processing above
 
         elif ctype == ConstraintType.weekend_fairness:
             max_weekends = params.get("max_weekends_per_month", 2)

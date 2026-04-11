@@ -129,15 +129,17 @@ export function SolutionView({
   // Build shift type lookup
   const shiftTypeMap = new Map(shiftTypes.map((s) => [s.id, s]))
 
-  // Build assignment lookup: employeeId → dateString → shiftTypeId
-  const assignmentLookup = new Map<string, Map<string, string>>()
+  // Build assignment lookup: employeeId → dateString → shiftTypeId[]
+  const assignmentLookup = new Map<string, Map<string, string[]>>()
   if (latestSolution?.assignments) {
     for (const a of latestSolution.assignments) {
       const dateStr = toLocalDateStr(new Date(a.date))
       if (!assignmentLookup.has(a.employeeId)) {
         assignmentLookup.set(a.employeeId, new Map())
       }
-      assignmentLookup.get(a.employeeId)!.set(dateStr, a.shiftTypeId)
+      const empMap = assignmentLookup.get(a.employeeId)!
+      if (!empMap.has(dateStr)) empMap.set(dateStr, [])
+      empMap.get(dateStr)!.push(a.shiftTypeId)
     }
   }
 
@@ -225,7 +227,7 @@ export function SolutionView({
   // Daily coverage chart data: employees scheduled per day
   const dailyCoverageData = dates.map((date) => {
     const dateStr = toLocalDateStr(date)
-    const count = employees.filter((emp) => assignmentLookup.get(emp.id)?.has(dateStr)).length
+    const count = employees.filter((emp) => (assignmentLookup.get(emp.id)?.get(dateStr)?.length ?? 0) > 0).length
     return {
       date: format(date, "d MMM"),
       day: format(date, "EEE"),
@@ -403,9 +405,9 @@ export function SolutionView({
                       {dates.map((date) => {
                         const dateStr = toLocalDateStr(date)
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                        const shiftTypeId = employeeAssignments?.get(dateStr)
-                        const shiftType = shiftTypeId ? shiftTypeMap.get(shiftTypeId) : undefined
-                        const cellState = shiftType ? null : getCellState(employee.id, date, dateStr)
+                        const shiftTypeIds = employeeAssignments?.get(dateStr) ?? []
+                        const shiftTypesForDay = shiftTypeIds.map((id) => shiftTypeMap.get(id)).filter(Boolean) as ShiftType[]
+                        const cellState = shiftTypesForDay.length > 0 ? null : getCellState(employee.id, date, dateStr)
                         return (
                           <TableCell
                             key={dateStr}
@@ -415,8 +417,8 @@ export function SolutionView({
                               cellState === "holiday" && "bg-amber-50/60 dark:bg-amber-950/20",
                             )}
                             title={
-                              shiftType
-                                ? `${shiftType.name} (${shiftType.startTime}–${shiftType.endTime})`
+                              shiftTypesForDay.length > 0
+                                ? shiftTypesForDay.map((s) => `${s.name} (${s.startTime}–${s.endTime})`).join(", ")
                                 : cellState === "holiday"
                                   ? "Holiday / time off"
                                   : cellState === "unavailable"
@@ -424,16 +426,21 @@ export function SolutionView({
                                     : undefined
                             }
                           >
-                            {shiftType ? (
-                              <div
-                                className="mx-1 rounded text-[10px] font-semibold leading-none py-[3px] px-1.5 truncate text-center border-l-2"
-                                style={{
-                                  backgroundColor: shiftType.color + "18",
-                                  color: shiftType.color,
-                                  borderLeftColor: shiftType.color,
-                                }}
-                              >
-                                {shiftType.name.length > 4 ? shiftType.name.slice(0, 4) : shiftType.name}
+                            {shiftTypesForDay.length > 0 ? (
+                              <div className="flex flex-col gap-0.5">
+                                {shiftTypesForDay.map((shiftType) => (
+                                  <div
+                                    key={shiftType.id}
+                                    className="mx-1 rounded text-[10px] font-semibold leading-none py-[3px] px-1.5 truncate text-center border-l-2"
+                                    style={{
+                                      backgroundColor: shiftType.color + "18",
+                                      color: shiftType.color,
+                                      borderLeftColor: shiftType.color,
+                                    }}
+                                  >
+                                    {shiftType.name.length > 4 ? shiftType.name.slice(0, 4) : shiftType.name}
+                                  </div>
+                                ))}
                               </div>
                             ) : cellState === "holiday" ? (
                               <div className="mx-1 rounded text-[10px] font-semibold leading-none py-[3px] px-1.5 text-center bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400">

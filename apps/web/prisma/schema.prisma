@@ -96,6 +96,7 @@ enum ConstraintType {
   min_days_between_shifts
   day_pairing
   shift_coverage
+  max_shifts_per_day
 }
 
 enum ConstraintScope {

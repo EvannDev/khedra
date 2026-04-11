@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { InviteSection } from "@/components/teams/invite-section"
 import { LinkEmployeeSelect } from "@/components/teams/link-employee-select"
+import { RoleSelect } from "@/components/teams/role-select"
 import type { TeamMemberModel } from "@/lib/generated/prisma/models/TeamMember"
 import type { UserModel } from "@/lib/generated/prisma/models/User"
 import type { EmployeeModel } from "@/lib/generated/prisma/models/Employee"
@@ -35,9 +36,10 @@ interface MemberListProps {
   employees: EmployeeModel[]
   inviteToken: string | null
   currentUserRole: string
+  currentUserId: string
 }
 
-export function MemberList({ teamId, members, employees, inviteToken, currentUserRole }: MemberListProps) {
+export function MemberList({ teamId, members, employees, inviteToken, currentUserRole, currentUserId }: MemberListProps) {
   const isAdmin = currentUserRole === "admin"
 
   // employees already linked to some member (keyed by userId)
@@ -76,7 +78,15 @@ export function MemberList({ teamId, members, employees, inviteToken, currentUse
                   <TableCell className="font-medium">{member.user.name ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{member.user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={roleVariant[member.role] ?? "outline"}>{member.role}</Badge>
+                    {isAdmin && member.userId !== currentUserId ? (
+                      <RoleSelect
+                        teamId={teamId}
+                        targetUserId={member.userId}
+                        currentRole={member.role as "admin" | "manager" | "viewer"}
+                      />
+                    ) : (
+                      <Badge variant={roleVariant[member.role] ?? "outline"}>{member.role}</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     {isAdmin ? (

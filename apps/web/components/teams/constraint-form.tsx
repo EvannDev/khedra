@@ -21,6 +21,7 @@ import {
   minDaysBetweenShiftsParamsSchema,
   dayPairingParamsSchema,
   shiftCoverageParamsSchema,
+  maxShiftsPerDayParamsSchema,
 } from "@/lib/schemas/constraint"
 import { Calendar } from "@/components/ui/calendar"
 import { RiCloseLine } from "@remixicon/react"
@@ -75,6 +76,7 @@ const paramsSchemaMap: Record<ConstraintType, any> = {
   min_days_between_shifts: minDaysBetweenShiftsParamsSchema,
   day_pairing: dayPairingParamsSchema,
   shift_coverage: shiftCoverageParamsSchema,
+  max_shifts_per_day: maxShiftsPerDayParamsSchema,
   // Deprecated — kept for type completeness, not shown in form
   min_employees_per_shift: minRestParamsSchema,
   max_employees_per_shift: minRestParamsSchema,
@@ -97,6 +99,7 @@ const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
   min_days_between_shifts: { days: 2, consecutive: 1, mode: "hard" },
   day_pairing: { days: ["sat", "sun"], mode: "hard" },
   shift_coverage: { shift_type_id: "", min: "", max: "", mode: "hard" },
+  max_shifts_per_day: { max: 2, employee_id: "" },
   // Deprecated
   min_employees_per_shift: {},
   max_employees_per_shift: {},
@@ -106,7 +109,7 @@ const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
 interface ConstraintFormProps {
   teamId: string
   planningId: string
-  employees: { id: string; name: string }[]
+  employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   onSuccess: () => void
 }
@@ -115,7 +118,7 @@ interface ParamsStepProps {
   type: ConstraintType
   teamId: string
   planningId: string
-  employees: { id: string; name: string }[]
+  employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   onSuccess: () => void
   onBack: () => void
@@ -142,6 +145,10 @@ export function ConstraintParamsStep({
     initialParams?.employee_id ? "employee" : "all"
   )
 
+  const allSkills = Array.from(
+    new Set(employees.flatMap((e) => e.skills.map((s) => s.toLowerCase())))
+  ).sort()
+
   const form = useForm<any>({
     resolver: standardSchemaResolver(paramsSchemaMap[type]),
     defaultValues: initialParams
@@ -154,6 +161,7 @@ export function ConstraintParamsStep({
     const cleanParams = { ...params }
     if (type === "holiday" && !cleanParams.employee_id) delete cleanParams.employee_id
     if (type === "holiday" && !cleanParams.name) delete cleanParams.name
+    if (type === "max_shifts_per_day" && !cleanParams.employee_id) delete cleanParams.employee_id
     if (type === "shift_coverage") {
       if (cleanParams.min === "" || cleanParams.min === undefined) delete cleanParams.min
       if (cleanParams.max === "" || cleanParams.max === undefined) delete cleanParams.max
@@ -335,42 +343,59 @@ export function ConstraintParamsStep({
         {type === "required_skill" && (
           <>
             <FormField
-              control={control}
-              name="shift_type_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Shift type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select shift type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {shiftTypes.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={control}
-              name="skill"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Required skill</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. manager" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                control={control}
+                name="shift_type_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Shift type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select shift type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {shiftTypes.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name="skill"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Required skill</FormLabel>
+                    {allSkills.length > 0 ? (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select skill" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {allSkills.map((skill) => (
+                            <SelectItem key={skill} value={skill}>
+                              {skill}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <FormControl>
+                        <Input placeholder="e.g. manager" {...field} />
+                      </FormControl>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
           </>
         )}
 
@@ -564,6 +589,52 @@ export function ConstraintParamsStep({
                 )}
               />
             </div>
+          </>
+        )}
+
+        {/* max_shifts_per_day */}
+        {type === "max_shifts_per_day" && (
+          <>
+            <FormField
+              control={control}
+              name="max"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max shifts per day</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={2} placeholder="e.g. 2" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="employee_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Employee{" "}
+                    <span className="text-muted-foreground font-normal">(optional — leave blank to apply to all)</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All employees" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {employees.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </>
         )}
 

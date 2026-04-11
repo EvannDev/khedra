@@ -77,6 +77,11 @@ export const dayPairingParamsSchema = z.object({
   mode: z.enum(["hard", "soft"]).default("hard"),
 })
 
+export const maxShiftsPerDayParamsSchema = z.object({
+  max: z.coerce.number().int().min(2, "Must be at least 2"),
+  employee_id: z.string().optional(),
+})
+
 const coerceOptionalInt = (minVal: number) =>
   z.preprocess(
     (val) => (val === "" || val === null || val === undefined ? undefined : Number(val)),
@@ -112,6 +117,7 @@ export const constraintSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("min_days_between_shifts"), params: minDaysBetweenShiftsParamsSchema }),
   z.object({ type: z.literal("day_pairing"), params: dayPairingParamsSchema }),
   z.object({ type: z.literal("shift_coverage"), params: shiftCoverageParamsSchema }),
+  z.object({ type: z.literal("max_shifts_per_day"), params: maxShiftsPerDayParamsSchema }),
 ])
 
 export type ConstraintInput = z.infer<typeof constraintSchema>

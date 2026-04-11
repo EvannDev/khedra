@@ -40,6 +40,7 @@ export default async function MembersPage({
       employees={employees}
       inviteToken={team.inviteToken}
       currentUserRole={currentMember.role}
+      currentUserId={session!.user!.id}
     />
   )
 }

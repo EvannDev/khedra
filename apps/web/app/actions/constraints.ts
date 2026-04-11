@@ -42,7 +42,8 @@ export async function createConstraint(
       },
     })
     return { success: true as const, constraint }
-  } catch {
+  } catch (e) {
+    console.error("createConstraint error:", e)
     return { error: "Failed to create constraint." }
   }
 }

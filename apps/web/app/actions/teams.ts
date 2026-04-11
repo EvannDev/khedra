@@ -33,7 +33,7 @@ export async function updateTeam(teamId: string, data: unknown) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role !== "admin") return { error: "Only admins can update the team." }
 
   const parsed = teamSchema.safeParse(data)
   if (!parsed.success) {
@@ -56,7 +56,7 @@ export async function deleteTeam(teamId: string) {
   if (!session?.user?.id) redirect("/sign-in")
 
   const member = await requireTeamMember(teamId, session.user.id)
-  if (!member) return { error: "Forbidden" }
+  if (!member || member.role !== "admin") return { error: "Only admins can delete the team." }
 
   try {
     await prisma.team.delete({ where: { id: teamId } })
@@ -117,6 +117,38 @@ export async function linkMemberToEmployee(
     return { success: true as const }
   } catch {
     return { error: "Failed to link employee." }
+  }
+}
+
+export async function updateTeamMemberRole(
+  teamId: string,
+  targetUserId: string,
+  newRole: "admin" | "manager" | "viewer"
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/sign-in")
+
+  const member = await requireTeamMember(teamId, session.user.id)
+  if (!member || member.role !== "admin") return { error: "Only admins can change roles." }
+
+  if (targetUserId === session.user.id) return { error: "You cannot change your own role." }
+
+  if (newRole !== "admin") {
+    const target = await requireTeamMember(teamId, targetUserId)
+    if (target?.role === "admin") {
+      const adminCount = await prisma.teamMember.count({ where: { teamId, role: "admin" } })
+      if (adminCount <= 1) return { error: "Cannot remove the last admin." }
+    }
+  }
+
+  try {
+    await prisma.teamMember.update({
+      where: { userId_teamId: { userId: targetUserId, teamId } },
+      data: { role: newRole },
+    })
+    return { success: true as const }
+  } catch {
+    return { error: "Failed to update role." }
   }
 }
 

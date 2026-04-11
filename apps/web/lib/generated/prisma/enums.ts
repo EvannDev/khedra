@@ -46,7 +46,8 @@ export const ConstraintType = {
   max_days_per_week: 'max_days_per_week',
   min_days_between_shifts: 'min_days_between_shifts',
   day_pairing: 'day_pairing',
-  shift_coverage: 'shift_coverage'
+  shift_coverage: 'shift_coverage',
+  max_shifts_per_day: 'max_shifts_per_day'
 } as const
 
 export type ConstraintType = (typeof ConstraintType)[keyof typeof ConstraintType]

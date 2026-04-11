@@ -56,7 +56,7 @@ interface ConstraintListProps {
   teamId: string
   planningId: string
   constraints: ConstraintModel[]
-  employees: { id: string; name: string }[]
+  employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
 }
 
@@ -235,7 +235,7 @@ export function ConstraintList({
 interface ConstraintGroupProps {
   label: string
   items: ConstraintModel[]
-  employees: { id: string; name: string }[]
+  employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   togglingId: string | null
   deletingId: string | null
@@ -300,7 +300,7 @@ function ConstraintGroup({
 
 interface ConstraintRowProps {
   constraint: ConstraintModel
-  employees: { id: string; name: string }[]
+  employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   toggling: boolean
   deleting: boolean
