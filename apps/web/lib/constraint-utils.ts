@@ -17,6 +17,7 @@ export const CONSTRAINT_TYPE_COLORS: Record<ConstraintType, string> = {
   day_pairing: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-900",
   shift_coverage: "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-900",
   max_shifts_per_day: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-900",
+  no_consecutive_weekends: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-400 dark:border-indigo-900",
   // Deprecated — kept for display of existing constraints
   min_employees_per_shift: "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-900",
   max_employees_per_shift: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-900",
@@ -40,6 +41,7 @@ export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
   day_pairing: "Day pairing",
   shift_coverage: "Shift coverage",
   max_shifts_per_day: "Max shifts / day",
+  no_consecutive_weekends: "No consecutive weekends",
   // Deprecated
   min_employees_per_shift: "Min employees / shift",
   max_employees_per_shift: "Max employees / shift",
@@ -63,6 +65,7 @@ export const CONSTRAINT_TYPE_BORDER: Record<ConstraintType, string> = {
   day_pairing: "border-l-yellow-400 dark:border-l-yellow-500",
   shift_coverage: "border-l-green-400 dark:border-l-green-500",
   max_shifts_per_day: "border-l-rose-400 dark:border-l-rose-500",
+  no_consecutive_weekends: "border-l-indigo-400 dark:border-l-indigo-500",
   // Deprecated
   min_employees_per_shift: "border-l-cyan-400 dark:border-l-cyan-500",
   max_employees_per_shift: "border-l-rose-400 dark:border-l-rose-500",
@@ -81,7 +84,7 @@ export const CONSTRAINT_CATEGORIES: { id: string; label: string; types: Constrai
   { id: "hours",         label: "Hours & Days",        types: ["max_hours_per_week", "max_hours_per_month", "max_days_per_week", "min_days_between_shifts", "max_shifts_per_day"] },
   { id: "consecutive",   label: "Consecutive Work",    types: ["max_consecutive_days", "min_consecutive_days"] },
   { id: "assignment",    label: "Shift Assignment",    types: ["shift_coverage", "required_skill", "shift_preference"] },
-  { id: "fairness",      label: "Fairness & Pairing",  types: ["weekend_fairness", "day_pairing"] },
+  { id: "fairness",      label: "Fairness & Pairing",  types: ["weekend_fairness", "no_consecutive_weekends", "day_pairing"] },
   { id: "rest",          label: "Rest & Rhythm",       types: ["min_rest_between_shifts", "no_shift_alternation"] },
 ]
 
@@ -100,7 +103,9 @@ export function formatConstraintParams(
     case "max_hours_per_week":
       return `Max ${params.max} h/week`
     case "max_hours_per_month":
-      return `Max ${params.max} h/month`
+      return params.employee_id
+        ? `Max ${params.max} h/month — ${emp(params.employee_id as string)}`
+        : `Max ${params.max} h/month`
     case "unavailability":
       return `${emp(params.employee_id as string)} — ${(params.days as string[]).join(", ")}`
     case "min_rest_between_shifts":
@@ -158,5 +163,9 @@ export function formatConstraintParams(
         ? `${label}${emp(params.employee_id as string)}: ${dateStr}`
         : `${label}${dateStr}`
     }
+    case "no_consecutive_weekends":
+      return params.employee_id
+        ? `No consecutive weekends — ${emp(params.employee_id as string)}`
+        : "No consecutive weekends"
   }
 }

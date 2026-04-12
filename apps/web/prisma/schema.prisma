@@ -97,6 +97,7 @@ enum ConstraintType {
   day_pairing
   shift_coverage
   max_shifts_per_day
+  no_consecutive_weekends
 }
 
 enum ConstraintScope {

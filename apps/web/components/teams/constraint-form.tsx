@@ -2,8 +2,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react"
+import { z } from "zod"
 import { useRouter } from "next/navigation"
-import { useForm, useController, type Control } from "react-hook-form"
+import { useForm, useController, type Control, type UseFormReturn } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import {
   maxHoursParamsSchema,
@@ -22,12 +23,15 @@ import {
   dayPairingParamsSchema,
   shiftCoverageParamsSchema,
   maxShiftsPerDayParamsSchema,
+  noConsecutiveWeekendsParamsSchema,
 } from "@/lib/schemas/constraint"
 import { Calendar } from "@/components/ui/calendar"
 import { RiCloseLine } from "@remixicon/react"
 import { CONSTRAINT_TYPE_LABELS, DEPRECATED_CONSTRAINT_TYPES } from "@/lib/constraint-utils"
+import { toLocalDateString } from "@/lib/utils"
 import { ConstraintCatalog } from "./constraint-catalog"
 import { createConstraint, updateConstraint } from "@/app/actions/constraints"
+import { translateConstraint } from "@/app/actions/llm"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -77,15 +81,16 @@ const paramsSchemaMap: Record<ConstraintType, any> = {
   day_pairing: dayPairingParamsSchema,
   shift_coverage: shiftCoverageParamsSchema,
   max_shifts_per_day: maxShiftsPerDayParamsSchema,
+  no_consecutive_weekends: noConsecutiveWeekendsParamsSchema,
   // Deprecated — kept for type completeness, not shown in form
-  min_employees_per_shift: minRestParamsSchema,
-  max_employees_per_shift: minRestParamsSchema,
-  preferred_consecutive_days: minRestParamsSchema,
+  min_employees_per_shift: z.object({}),
+  max_employees_per_shift: z.object({}),
+  preferred_consecutive_days: z.object({}),
 }
 
 const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
   max_hours_per_week: { max: 35 },
-  max_hours_per_month: { max: 140 },
+  max_hours_per_month: { max: 140, employee_id: "" },
   unavailability: { employee_id: "", days: [] },
   min_rest_between_shifts: { hours: 11 },
   max_consecutive_days: { max: 5, mode: "hard" },
@@ -100,6 +105,7 @@ const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
   day_pairing: { days: ["sat", "sun"], mode: "hard" },
   shift_coverage: { shift_type_id: "", min: "", max: "", mode: "hard" },
   max_shifts_per_day: { max: 2, employee_id: "" },
+  no_consecutive_weekends: { employee_id: "" },
   // Deprecated
   min_employees_per_shift: {},
   max_employees_per_shift: {},
@@ -126,6 +132,30 @@ interface ParamsStepProps {
   constraintId?: string
   /** Pre-populate form fields when editing an existing constraint. */
   initialParams?: Record<string, unknown>
+}
+
+function ModeToggle({ form, softFirst = false }: { form: UseFormReturn<any>; softFirst?: boolean }) {
+  const mode = form.watch("mode")
+  const btnClass = (val: string) =>
+    `flex-1 px-3 py-2 text-sm transition-colors ${mode === val ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`
+  const hard = (
+    <button type="button" onClick={() => form.setValue("mode", "hard")} className={btnClass("hard")}>
+      Hard — strictly enforced
+    </button>
+  )
+  const soft = (
+    <button type="button" onClick={() => form.setValue("mode", "soft")} className={btnClass("soft")}>
+      Soft — preferred
+    </button>
+  )
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium leading-none">Mode</p>
+      <div className="flex rounded-md border border-input overflow-hidden">
+        {softFirst ? <>{soft}{hard}</> : <>{hard}{soft}</>}
+      </div>
+    </div>
+  )
 }
 
 export function ConstraintParamsStep({
@@ -158,14 +188,9 @@ export function ConstraintParamsStep({
 
   async function onSubmit(params: any) {
     setServerError("")
-    const cleanParams = { ...params }
-    if (type === "holiday" && !cleanParams.employee_id) delete cleanParams.employee_id
-    if (type === "holiday" && !cleanParams.name) delete cleanParams.name
-    if (type === "max_shifts_per_day" && !cleanParams.employee_id) delete cleanParams.employee_id
-    if (type === "shift_coverage") {
-      if (cleanParams.min === "" || cleanParams.min === undefined) delete cleanParams.min
-      if (cleanParams.max === "" || cleanParams.max === undefined) delete cleanParams.max
-    }
+    const cleanParams = Object.fromEntries(
+      Object.entries({ ...params }).filter(([, v]) => v !== "" && v !== undefined && v !== null)
+    )
 
     let result
     if (constraintId) {
@@ -182,8 +207,6 @@ export function ConstraintParamsStep({
     onSuccess()
   }
 
-  const control: Control<any> = form.control
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -197,7 +220,7 @@ export function ConstraintParamsStep({
         {/* max_hours_per_week */}
         {type === "max_hours_per_week" && (
           <FormField
-            control={control}
+            control={form.control}
             name="max"
             render={({ field }) => (
               <FormItem>
@@ -213,25 +236,54 @@ export function ConstraintParamsStep({
 
         {/* max_hours_per_month */}
         {type === "max_hours_per_month" && (
-          <FormField
-            control={control}
-            name="max"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Max hours per month</FormLabel>
-                <FormControl>
-                  <Input type="number" min={1} placeholder="e.g. 140" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <FormField
+              control={form.control}
+              name="max"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max hours per month</FormLabel>
+                  <FormControl>
+                    <Input type="number" min={1} placeholder="e.g. 140" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="employee_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Employee{" "}
+                    <span className="text-muted-foreground font-normal">(optional — leave blank to apply to all)</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All employees" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {employees.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
 
         {/* min_rest_between_shifts */}
         {type === "min_rest_between_shifts" && (
           <FormField
-            control={control}
+            control={form.control}
             name="hours"
             render={({ field }) => (
               <FormItem>
@@ -248,35 +300,9 @@ export function ConstraintParamsStep({
         {/* max_consecutive_days */}
         {type === "max_consecutive_days" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} />
             <FormField
-              control={control}
+              control={form.control}
               name="max"
               render={({ field }) => (
                 <FormItem>
@@ -294,7 +320,7 @@ export function ConstraintParamsStep({
         {/* weekend_fairness */}
         {type === "weekend_fairness" && (
           <FormField
-            control={control}
+            control={form.control}
             name="max_weekends_per_month"
             render={({ field }) => (
               <FormItem>
@@ -312,7 +338,7 @@ export function ConstraintParamsStep({
         {type === "unavailability" && (
           <>
             <FormField
-              control={control}
+              control={form.control}
               name="employee_id"
               render={({ field }) => (
                 <FormItem>
@@ -335,7 +361,7 @@ export function ConstraintParamsStep({
                 </FormItem>
               )}
             />
-            <DaysField control={control} />
+            <DaysField control={form.control} />
           </>
         )}
 
@@ -343,7 +369,7 @@ export function ConstraintParamsStep({
         {type === "required_skill" && (
           <>
             <FormField
-                control={control}
+                control={form.control}
                 name="shift_type_id"
                 render={({ field }) => (
                   <FormItem>
@@ -367,7 +393,7 @@ export function ConstraintParamsStep({
                 )}
               />
               <FormField
-                control={control}
+                control={form.control}
                 name="skill"
                 render={({ field }) => (
                   <FormItem>
@@ -402,35 +428,9 @@ export function ConstraintParamsStep({
         {/* shift_preference */}
         {type === "shift_preference" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} softFirst />
             <FormField
-              control={control}
+              control={form.control}
               name="employee_id"
               render={({ field }) => (
                 <FormItem>
@@ -454,7 +454,7 @@ export function ConstraintParamsStep({
               )}
             />
             <FormField
-              control={control}
+              control={form.control}
               name="shift_type_id"
               render={({ field }) => (
                 <FormItem>
@@ -478,7 +478,7 @@ export function ConstraintParamsStep({
               )}
             />
             <FormField
-              control={control}
+              control={form.control}
               name="weight"
               render={({ field }) => (
                 <FormItem>
@@ -504,35 +504,9 @@ export function ConstraintParamsStep({
         {/* shift_coverage */}
         {type === "shift_coverage" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} />
             <FormField
-              control={control}
+              control={form.control}
               name="shift_type_id"
               render={({ field }) => (
                 <FormItem>
@@ -557,7 +531,7 @@ export function ConstraintParamsStep({
             />
             <div className="grid grid-cols-2 gap-3">
               <FormField
-                control={control}
+                control={form.control}
                 name="min"
                 render={({ field }) => (
                   <FormItem>
@@ -573,7 +547,7 @@ export function ConstraintParamsStep({
                 )}
               />
               <FormField
-                control={control}
+                control={form.control}
                 name="max"
                 render={({ field }) => (
                   <FormItem>
@@ -596,7 +570,7 @@ export function ConstraintParamsStep({
         {type === "max_shifts_per_day" && (
           <>
             <FormField
-              control={control}
+              control={form.control}
               name="max"
               render={({ field }) => (
                 <FormItem>
@@ -609,7 +583,7 @@ export function ConstraintParamsStep({
               )}
             />
             <FormField
-              control={control}
+              control={form.control}
               name="employee_id"
               render={({ field }) => (
                 <FormItem>
@@ -638,38 +612,43 @@ export function ConstraintParamsStep({
           </>
         )}
 
+        {/* no_consecutive_weekends */}
+        {type === "no_consecutive_weekends" && (
+          <FormField
+            control={form.control}
+            name="employee_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Employee{" "}
+                  <span className="text-muted-foreground font-normal">(optional — leave blank to apply to all)</span>
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All employees" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {employees.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {/* min_consecutive_days */}
         {type === "min_consecutive_days" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} />
             <FormField
-              control={control}
+              control={form.control}
               name="min"
               render={({ field }) => (
                 <FormItem>
@@ -687,35 +666,9 @@ export function ConstraintParamsStep({
         {/* max_days_per_week */}
         {type === "max_days_per_week" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} />
             <FormField
-              control={control}
+              control={form.control}
               name="max"
               render={({ field }) => (
                 <FormItem>
@@ -733,36 +686,10 @@ export function ConstraintParamsStep({
         {/* min_days_between_shifts */}
         {type === "min_days_between_shifts" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
+            <ModeToggle form={form} />
             <div className="grid grid-cols-2 gap-3">
               <FormField
-                control={control}
+                control={form.control}
                 name="consecutive"
                 render={({ field }) => (
                   <FormItem>
@@ -775,7 +702,7 @@ export function ConstraintParamsStep({
                 )}
               />
               <FormField
-                control={control}
+                control={form.control}
                 name="days"
                 render={({ field }) => (
                   <FormItem>
@@ -797,41 +724,15 @@ export function ConstraintParamsStep({
         {/* day_pairing */}
         {type === "day_pairing" && (
           <>
-            <div className="space-y-2">
-              <p className="text-sm font-medium leading-none">Mode</p>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "hard")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "hard"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Hard — strictly enforced
-                </button>
-                <button
-                  type="button"
-                  onClick={() => form.setValue("mode", "soft")}
-                  className={`flex-1 px-3 py-2 text-sm transition-colors ${
-                    form.watch("mode") === "soft"
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  Soft — preferred
-                </button>
-              </div>
-            </div>
-            <DaysField control={control} label="Days to pair (all or none)" />
+            <ModeToggle form={form} />
+            <DaysField control={form.control} label="Days to pair (all or none)" />
           </>
         )}
 
         {/* no_shift_alternation */}
         {type === "no_shift_alternation" && (
           <FormField
-            control={control}
+            control={form.control}
             name="penalty"
             render={({ field }) => (
               <FormItem>
@@ -880,7 +781,7 @@ export function ConstraintParamsStep({
             {/* Employee select — only for personal time-off */}
             {holidayScope === "employee" && (
               <FormField
-                control={control}
+                control={form.control}
                 name="employee_id"
                 render={({ field }) => (
                   <FormItem>
@@ -906,11 +807,11 @@ export function ConstraintParamsStep({
             )}
 
             {/* Date picker */}
-            <HolidayDatesField control={control} />
+            <HolidayDatesField control={form.control} />
 
             {/* Optional name */}
             <FormField
-              control={control}
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
@@ -959,14 +860,7 @@ function HolidayDatesField({ control }: { control: Control<any> }) {
   const selectedDays = dates.map((d) => new Date(d + "T12:00:00"))
 
   function handleSelect(days: Date[] | undefined) {
-    field.onChange(
-      (days ?? []).map((d) => {
-        const y = d.getFullYear()
-        const m = String(d.getMonth() + 1).padStart(2, "0")
-        const day = String(d.getDate()).padStart(2, "0")
-        return `${y}-${m}-${day}`
-      })
-    )
+    field.onChange((days ?? []).map((d) => toLocalDateString(d)))
   }
 
   function removeDate(iso: string) {
@@ -1049,6 +943,8 @@ function DaysField({ control, label = "Unavailable days" }: { control: Control<a
   )
 }
 
+type LlmStatus = "idle" | "loading" | "clarifying" | "error"
+
 export function ConstraintForm({
   teamId,
   planningId,
@@ -1058,6 +954,30 @@ export function ConstraintForm({
 }: ConstraintFormProps) {
   const [step, setStep] = useState<"type" | "params">("type")
   const [selectedType, setSelectedType] = useState<ConstraintType | "">("")
+  const [llmInitialParams, setLlmInitialParams] = useState<Record<string, unknown> | undefined>()
+
+  const [llmInput, setLlmInput] = useState("")
+  const [llmStatus, setLlmStatus] = useState<LlmStatus>("idle")
+  const [llmMessage, setLlmMessage] = useState("")
+  async function handleGenerate() {
+    const input = llmInput.trim()
+    if (!input) return
+    setLlmStatus("loading")
+    setLlmMessage("")
+    const result = await translateConstraint(teamId, input, { employees, shiftTypes })
+    if ("constraint" in result) {
+      setLlmInitialParams(result.constraint.params)
+      setSelectedType(result.constraint.type as ConstraintType)
+      setStep("params")
+      setLlmStatus("idle")
+    } else if ("clarification" in result) {
+      setLlmStatus("clarifying")
+      setLlmMessage(result.clarification)
+    } else {
+      setLlmStatus("error")
+      setLlmMessage(result.error)
+    }
+  }
 
   if (step === "params" && selectedType) {
     return (
@@ -1069,17 +989,74 @@ export function ConstraintForm({
         employees={employees}
         shiftTypes={shiftTypes}
         onSuccess={onSuccess}
-        onBack={() => setStep("type")}
+        onBack={() => {
+          setStep("type")
+          setLlmInitialParams(undefined)
+        }}
+        initialParams={llmInitialParams}
       />
     )
   }
 
+  const llmEnabled = process.env.NEXT_PUBLIC_LLM_ENABLED === "true"
+
   return (
-    <ConstraintCatalog
-      onSelect={(type) => {
-        setSelectedType(type)
-        setStep("params")
-      }}
-    />
+    <div className="space-y-4">
+      {llmEnabled && (
+        <>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Describe a constraint</p>
+            <textarea
+              value={llmInput}
+              onChange={(e) => setLlmInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleGenerate()
+                }
+              }}
+              placeholder="e.g. Alice can't work on Mondays, or max 5 consecutive days for everyone"
+              rows={2}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+            <Button
+              type="button"
+              onClick={handleGenerate}
+              disabled={llmStatus === "loading" || !llmInput.trim()}
+              size="sm"
+              className="w-full"
+            >
+              {llmStatus === "loading" ? "Generating..." : "Generate with AI"}
+            </Button>
+            {llmStatus === "clarifying" && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-muted border border-border px-4 py-3">
+                <p className="text-sm leading-snug">{llmMessage}</p>
+              </div>
+            )}
+            {llmStatus === "error" && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-destructive/8 border border-destructive/20 px-4 py-3">
+                <div className="mt-1.5 size-1.5 rounded-full bg-destructive shrink-0" />
+                <p className="text-sm text-destructive leading-snug">{llmMessage}</p>
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or pick from catalog</span>
+            </div>
+          </div>
+        </>
+      )}
+      <ConstraintCatalog
+        onSelect={(type) => {
+          setSelectedType(type)
+          setLlmInitialParams(undefined)
+          setStep("params")
+        }}
+      />
+    </div>
   )
 }

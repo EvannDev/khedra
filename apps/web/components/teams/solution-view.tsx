@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { format, eachDayOfInterval } from "date-fns"
 import { solvePlanning } from "@/app/actions/solutions"
+import { analyzeFailure } from "@/app/actions/llm"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RiFlowChart } from "@remixicon/react"
-import { cn } from "@/lib/utils"
+import { cn, computeShiftDurationHours, toLocalDateString } from "@/lib/utils"
 import type { PlanningStatus, SolutionStatus } from "@/lib/generated/prisma/enums"
 import {
   BarChart,
@@ -84,20 +85,7 @@ const solutionStatusVariant: Record<SolutionStatus, "default" | "secondary" | "d
   failed: "destructive",
 }
 
-function shiftDurationHours(s: ShiftType): number {
-  const [sh, sm] = s.startTime.split(":").map(Number)
-  const [eh, em] = s.endTime.split(":").map(Number)
-  const startMin = sh * 60 + sm
-  let endMin = eh * 60 + em
-  if (endMin <= startMin) endMin += 24 * 60
-  return (endMin - startMin) / 60
-}
-
 const DAY_ABBR = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-
-function toLocalDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
 
 export function SolutionView({
   teamId,
@@ -108,9 +96,16 @@ export function SolutionView({
   latestSolution,
   constraints = [],
 }: SolutionViewProps) {
+  type AnalysisState =
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "done"; data: { summary: string; suggestions: Array<{ title: string; description: string }> } }
+    | { status: "error"; message: string }
+
   const router = useRouter()
   const [solving, setSolving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisState>({ status: "idle" })
 
   const canSolve = employees.length > 0 && shiftTypes.length > 0
 
@@ -126,40 +121,66 @@ export function SolutionView({
     router.refresh()
   }
 
-  // Build shift type lookup
-  const shiftTypeMap = new Map(shiftTypes.map((s) => [s.id, s]))
+  async function handleAnalyze() {
+    setAnalysis({ status: "loading" })
+    const result = await analyzeFailure(teamId, planningId, {
+      constraints: constraints.map((c) => ({
+        type: c.type,
+        params: c.params as Record<string, unknown>,
+        enabled: c.enabled,
+      })),
+      employees,
+      shiftTypes: shiftTypes.map((s) => ({
+        id: s.id,
+        name: s.name,
+        startTime: new Date(`1970-01-01T${s.startTime}`),
+        endTime: new Date(`1970-01-01T${s.endTime}`),
+      })),
+      startDate: planning.startDate,
+      endDate: planning.endDate,
+    })
+    if ("error" in result) {
+      setAnalysis({ status: "error", message: result.error })
+      return
+    }
+    setAnalysis({ status: "done", data: result.analysis })
+  }
 
-  // Build assignment lookup: employeeId → dateString → shiftTypeId[]
-  const assignmentLookup = new Map<string, Map<string, string[]>>()
-  if (latestSolution?.assignments) {
-    for (const a of latestSolution.assignments) {
-      const dateStr = toLocalDateStr(new Date(a.date))
-      if (!assignmentLookup.has(a.employeeId)) {
-        assignmentLookup.set(a.employeeId, new Map())
-      }
-      const empMap = assignmentLookup.get(a.employeeId)!
+  // Build shift type lookup
+  const shiftTypeMap = useMemo(
+    () => new Map(shiftTypes.map((s) => [s.id, s])),
+    [shiftTypes]
+  )
+
+  const assignmentLookup = useMemo(() => {
+    const lookup = new Map<string, Map<string, string[]>>()
+    for (const a of latestSolution?.assignments ?? []) {
+      const dateStr = toLocalDateString(new Date(a.date))
+      if (!lookup.has(a.employeeId)) lookup.set(a.employeeId, new Map())
+      const empMap = lookup.get(a.employeeId)!
       if (!empMap.has(dateStr)) empMap.set(dateStr, [])
       empMap.get(dateStr)!.push(a.shiftTypeId)
     }
-  }
+    return lookup
+  }, [latestSolution])
 
-  // Build holiday lookup: "employeeId|YYYY-MM-DD" or "*|YYYY-MM-DD" for public holidays
-  const holidayKeys = new Set<string>()
-  for (const c of constraints) {
-    if (c.type !== "holiday" || !c.enabled) continue
-    const p = c.params as { dates?: string[]; employee_id?: string }
-    const empKey = p.employee_id ?? "*"
-    for (const d of p.dates ?? []) holidayKeys.add(`${empKey}|${d}`)
-  }
-
-  // Build unavailability lookup: "employeeId|dayAbbr"
-  const unavailKeys = new Set<string>()
-  for (const c of constraints) {
-    if (c.type !== "unavailability" || !c.enabled) continue
-    const p = c.params as { employee_id?: string; days?: string[] }
-    if (!p.employee_id) continue
-    for (const day of p.days ?? []) unavailKeys.add(`${p.employee_id}|${day}`)
-  }
+  const { holidayKeys, unavailKeys } = useMemo(() => {
+    const holidays = new Set<string>()
+    const unavail = new Set<string>()
+    for (const c of constraints) {
+      if (!c.enabled) continue
+      if (c.type === "holiday") {
+        const p = c.params as { dates?: string[]; employee_id?: string }
+        const empKey = p.employee_id ?? "*"
+        for (const d of p.dates ?? []) holidays.add(`${empKey}|${d}`)
+      } else if (c.type === "unavailability") {
+        const p = c.params as { employee_id?: string; days?: string[] }
+        if (!p.employee_id) continue
+        for (const day of p.days ?? []) unavail.add(`${p.employee_id}|${day}`)
+      }
+    }
+    return { holidayKeys: holidays, unavailKeys: unavail }
+  }, [constraints])
 
   function getCellState(employeeId: string, date: Date, dateStr: string): "holiday" | "unavailable" | null {
     if (holidayKeys.has(`${employeeId}|${dateStr}`) || holidayKeys.has(`*|${dateStr}`)) return "holiday"
@@ -167,74 +188,83 @@ export function SolutionView({
     return null
   }
 
-  // Build date columns for the grid
-  const dates =
-    latestSolution?.status === "complete"
-      ? eachDayOfInterval({ start: new Date(planning.startDate), end: new Date(planning.endDate) })
-      : []
+  const dates = useMemo(
+    () =>
+      latestSolution?.status === "complete"
+        ? eachDayOfInterval({ start: new Date(planning.startDate), end: new Date(planning.endDate) })
+        : [],
+    [latestSolution, planning.startDate, planning.endDate]
+  )
 
-  // Compute per-employee workload stats
-  const employeeStats = latestSolution?.status === "complete"
-    ? employees
-        .map((emp) => {
-          const empAssignments = (latestSolution?.assignments ?? []).filter(
-            (a) => a.employeeId === emp.id
-          )
-          const shiftCount = empAssignments.length
-          const totalHours = empAssignments.reduce((sum, a) => {
-            const st = shiftTypeMap.get(a.shiftTypeId)
-            return st ? sum + shiftDurationHours(st) : sum
-          }, 0)
-          return { employee: emp, shiftCount, totalHours }
-        })
-        .sort((a, b) => b.totalHours - a.totalHours)
-    : []
+  const employeeStats = useMemo(() => {
+    if (latestSolution?.status !== "complete") return []
+    return employees
+      .map((emp) => {
+        const empAssignments = (latestSolution.assignments ?? []).filter((a) => a.employeeId === emp.id)
+        const shiftCount = empAssignments.length
+        const totalHours = empAssignments.reduce((sum, a) => {
+          const st = shiftTypeMap.get(a.shiftTypeId)
+          return st ? sum + computeShiftDurationHours(st.startTime, st.endTime) : sum
+        }, 0)
+        return { employee: emp, shiftCount, totalHours }
+      })
+      .sort((a, b) => b.totalHours - a.totalHours)
+  }, [latestSolution, employees, shiftTypeMap])
 
-  // Pre-build per-employee shift-type hours in one pass over assignments
-  const empShiftTypeHours = new Map<string, Map<string, number>>()
-  for (const a of latestSolution?.assignments ?? []) {
-    const st = shiftTypeMap.get(a.shiftTypeId)
-    if (!st) continue
-    let empMap = empShiftTypeHours.get(a.employeeId)
-    if (!empMap) { empMap = new Map(); empShiftTypeHours.set(a.employeeId, empMap) }
-    empMap.set(st.id, (empMap.get(st.id) ?? 0) + shiftDurationHours(st))
-  }
+  const empShiftTypeHours = useMemo(() => {
+    const result = new Map<string, Map<string, number>>()
+    for (const a of latestSolution?.assignments ?? []) {
+      const st = shiftTypeMap.get(a.shiftTypeId)
+      if (!st) continue
+      let empMap = result.get(a.employeeId)
+      if (!empMap) { empMap = new Map(); result.set(a.employeeId, empMap) }
+      empMap.set(st.id, (empMap.get(st.id) ?? 0) + computeShiftDurationHours(st.startTime, st.endTime))
+    }
+    return result
+  }, [latestSolution, shiftTypeMap])
 
-  const workloadChartData = employeeStats.map(({ employee, shiftCount, totalHours }) => {
-    const row: Record<string, unknown> = { name: employee.name, total: totalHours, shifts: shiftCount }
-    empShiftTypeHours.get(employee.id)?.forEach((hours, stId) => { row[stId] = hours })
-    return row
-  })
+  const workloadChartData = useMemo(
+    () =>
+      employeeStats.map(({ employee, shiftCount, totalHours }) => {
+        const row: Record<string, unknown> = { name: employee.name, total: totalHours, shifts: shiftCount }
+        empShiftTypeHours.get(employee.id)?.forEach((hours, stId) => { row[stId] = hours })
+        return row
+      }),
+    [employeeStats, empShiftTypeHours]
+  )
 
-  const chartConfig = Object.fromEntries(
-    shiftTypes.map((st) => [st.id, { label: st.name, color: st.color }])
-  ) satisfies ChartConfig
+  const chartConfig = useMemo(
+    () =>
+      Object.fromEntries(shiftTypes.map((st) => [st.id, { label: st.name, color: st.color }])) satisfies ChartConfig,
+    [shiftTypes]
+  )
 
   const chartHeight = Math.max(180, employeeStats.length * 44)
   const maxNameLen = employeeStats.reduce((m, e) => Math.max(m, e.employee.name.length), 8)
   const yAxisWidth = Math.min(130, Math.max(80, maxNameLen * 7))
 
-  // KPI metrics
   const totalShifts = employeeStats.reduce((s, e) => s + e.shiftCount, 0)
-  const scheduledCount = employeeStats.filter((e) => e.shiftCount > 0).length
-  const avgHours = scheduledCount > 0
-    ? employeeStats.filter((e) => e.shiftCount > 0).reduce((s, e) => s + e.totalHours, 0) / scheduledCount
-    : 0
+  const scheduled = employeeStats.filter((e) => e.shiftCount > 0)
+  const scheduledCount = scheduled.length
+  const avgHours = scheduledCount > 0 ? scheduled.reduce((s, e) => s + e.totalHours, 0) / scheduledCount : 0
   const hoursSpread = employeeStats.length >= 2
     ? employeeStats[0].totalHours - employeeStats[employeeStats.length - 1].totalHours
     : 0
 
-  // Daily coverage chart data: employees scheduled per day
-  const dailyCoverageData = dates.map((date) => {
-    const dateStr = toLocalDateStr(date)
-    const count = employees.filter((emp) => (assignmentLookup.get(emp.id)?.get(dateStr)?.length ?? 0) > 0).length
-    return {
-      date: format(date, "d MMM"),
-      day: format(date, "EEE"),
-      count,
-      isWeekend: date.getDay() === 0 || date.getDay() === 6,
-    }
-  })
+  const dailyCoverageData = useMemo(
+    () =>
+      dates.map((date) => {
+        const dateStr = toLocalDateString(date)
+        const count = employees.filter((emp) => (assignmentLookup.get(emp.id)?.get(dateStr)?.length ?? 0) > 0).length
+        return {
+          date: format(date, "d MMM"),
+          day: format(date, "EEE"),
+          count,
+          isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        }
+      }),
+    [dates, employees, assignmentLookup]
+  )
 
   const dailyChartConfig = {
     count: { label: "Employees", color: "hsl(var(--foreground))" },
@@ -315,13 +345,66 @@ export function SolutionView({
       )}
 
       {hasSolution && isFailed && (
-        <div className="rounded-xl border border-border bg-muted/20 px-6 py-5">
-          <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-border bg-muted/20 px-6 py-5 space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
             <Badge variant="destructive">Failed</Badge>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground flex-1">
               The solver could not generate a valid schedule. Check your constraints and try again.
             </p>
+            {process.env.NEXT_PUBLIC_LLM_ENABLED === "true" && analysis.status !== "done" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAnalyze}
+                disabled={analysis.status === "loading"}
+              >
+                {analysis.status === "loading" ? (
+                  <>
+                    <span className="size-3.5 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin mr-1.5" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze with AI"
+                )}
+              </Button>
+            )}
           </div>
+
+          {analysis.status === "error" && (
+            <p className="text-sm text-destructive">{analysis.message}</p>
+          )}
+
+          {analysis.status === "done" && (
+            <div className="rounded-lg border border-border bg-background px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  AI Analysis
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs text-muted-foreground"
+                  onClick={handleAnalyze}
+                >
+                  Re-analyze
+                </Button>
+              </div>
+              <p className="text-sm leading-relaxed">{analysis.data.summary}</p>
+              {analysis.data.suggestions.length > 0 && (
+                <ul className="space-y-2">
+                  {analysis.data.suggestions.map((s, i) => (
+                    <li key={i} className="flex gap-2.5">
+                      <span className="mt-[3px] size-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                      <div>
+                        <span className="text-sm font-medium">{s.title}: </span>
+                        <span className="text-sm text-muted-foreground">{s.description}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -403,7 +486,7 @@ export function SolutionView({
                         {employee.name}
                       </TableCell>
                       {dates.map((date) => {
-                        const dateStr = toLocalDateStr(date)
+                        const dateStr = toLocalDateString(date)
                         const isWeekend = date.getDay() === 0 || date.getDay() === 6
                         const shiftTypeIds = employeeAssignments?.get(dateStr) ?? []
                         const shiftTypesForDay = shiftTypeIds.map((id) => shiftTypeMap.get(id)).filter(Boolean) as ShiftType[]

@@ -118,12 +118,14 @@ def solve(request: SolveRequest) -> SolveResponse:
         elif ctype == ConstraintType.max_hours_per_month:
             max_h = params.get("max", 140)
             max_minutes = int(max_h * 60)
+            target_emp_id = params.get("employee_id")
             # Group days by calendar month
             months: dict[tuple, list[int]] = {}
             for d_idx, d in enumerate(days):
                 key = (d.year, d.month)
                 months.setdefault(key, []).append(d_idx)
-            for emp_id in emp_ids:
+            scoped_ids = [target_emp_id] if target_emp_id and target_emp_id in emp_ids else emp_ids
+            for emp_id in scoped_ids:
                 for month_days in months.values():
                     worked_minutes = []
                     for d_idx in month_days:
@@ -372,6 +374,34 @@ def solve(request: SolveRequest) -> SolveResponse:
 
         elif ctype == ConstraintType.max_shifts_per_day:
             pass  # handled in pre-processing above
+
+        elif ctype == ConstraintType.no_consecutive_weekends:
+            target_emp_id = params.get("employee_id")
+            scoped_ids = [target_emp_id] if target_emp_id and target_emp_id in emp_ids else emp_ids
+            # Build ordered list of (sat_idx, sun_idx) weekend pairs within the planning window
+            # A weekend is identified by its ISO week number; we collect all Saturdays then pair with their Sunday.
+            weekends: list[list[int]] = []
+            week_to_days: dict[tuple, list[int]] = {}
+            for d_idx, d in enumerate(days):
+                if d.weekday() >= 5:  # Saturday=5, Sunday=6
+                    key = (d.isocalendar()[0], d.isocalendar()[1])
+                    week_to_days.setdefault(key, []).append(d_idx)
+            for key in sorted(week_to_days):
+                weekends.append(week_to_days[key])
+            for emp_id in scoped_ids:
+                # Create a BoolVar per weekend: 1 if the employee works any shift that weekend
+                worked = []
+                for w_days in weekends:
+                    ww = model.new_bool_var(f"ncw_{emp_id}_w{len(worked)}")
+                    shifts_on_weekend = [x[emp_id][d_idx][s_id] for d_idx in w_days for s_id in shift_ids]
+                    if shifts_on_weekend:
+                        model.add_max_equality(ww, shifts_on_weekend)
+                    else:
+                        model.add(ww == 0)
+                    worked.append(ww)
+                # No two consecutive weekends worked
+                for i in range(len(worked) - 1):
+                    model.add(worked[i] + worked[i + 1] <= 1)
 
         elif ctype == ConstraintType.weekend_fairness:
             max_weekends = params.get("max_weekends_per_month", 2)

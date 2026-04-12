@@ -36,6 +36,7 @@ const CONSTRAINT_DESCRIPTIONS: Record<ConstraintType, string> = {
   min_days_between_shifts: "Enforce a minimum number of days off between any two shifts.",
   day_pairing: "Link weekdays so they are always worked together or not at all.",
   max_shifts_per_day: "Allow employees to work more than one shift in a single day.",
+  no_consecutive_weekends: "Prevent an employee (or everyone) from working two weekends in a row.",
   // deprecated — never rendered
   min_employees_per_shift: "",
   max_employees_per_shift: "",

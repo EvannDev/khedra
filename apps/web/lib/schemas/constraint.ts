@@ -7,6 +7,7 @@ export const maxHoursParamsSchema = z.object({
 
 export const maxHoursPerMonthParamsSchema = z.object({
   max: z.coerce.number().int().min(1, "Must be at least 1"),
+  employee_id: z.string().optional(),
 })
 
 export const unavailabilityParamsSchema = z.object({
@@ -88,6 +89,10 @@ const coerceOptionalInt = (minVal: number) =>
     z.number().int().min(minVal, `Must be at least ${minVal}`).optional()
   )
 
+export const noConsecutiveWeekendsParamsSchema = z.object({
+  employee_id: z.string().optional(),
+})
+
 export const shiftCoverageParamsSchema = z
   .object({
     shift_type_id: z.string().min(1, "Select a shift type"),
@@ -118,6 +123,7 @@ export const constraintSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("day_pairing"), params: dayPairingParamsSchema }),
   z.object({ type: z.literal("shift_coverage"), params: shiftCoverageParamsSchema }),
   z.object({ type: z.literal("max_shifts_per_day"), params: maxShiftsPerDayParamsSchema }),
+  z.object({ type: z.literal("no_consecutive_weekends"), params: noConsecutiveWeekendsParamsSchema }),
 ])
 
 export type ConstraintInput = z.infer<typeof constraintSchema>

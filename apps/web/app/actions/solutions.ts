@@ -5,22 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { requireTeamMember } from "@/lib/auth-utils"
 import { redirect } from "next/navigation"
 import type { ConstraintType } from "@/lib/generated/prisma/enums"
-
-function computeDurationHours(startTime: string, endTime: string): number {
-  const [sh, sm] = startTime.split(":").map(Number)
-  const [eh, em] = endTime.split(":").map(Number)
-  const startMin = sh * 60 + sm
-  let endMin = eh * 60 + em
-  if (endMin <= startMin) endMin += 24 * 60 // overnight shift
-  return (endMin - startMin) / 60
-}
-
-function toDateString(date: Date): string {
-  // Dates are stored as local midnight, which in positive-offset timezones (e.g. UTC+2)
-  // appears as the previous day in UTC (e.g. 22:00 UTC). Adding 12h before slicing
-  // ensures we always extract the intended calendar date regardless of server timezone.
-  return new Date(date.getTime() + 12 * 60 * 60 * 1000).toISOString().slice(0, 10)
-}
+import { computeShiftDurationHours, toDbDateString } from "@/lib/utils"
 
 const SOLVER_UNSUPPORTED_TYPES: ConstraintType[] = []
 
@@ -85,15 +70,15 @@ export async function solvePlanning(teamId: string, planningId: string) {
     solutionId = solution.id
 
     const solverPayload = {
-      start_date: toDateString(planning.startDate),
-      end_date: toDateString(planning.endDate),
+      start_date: toDbDateString(planning.startDate),
+      end_date: toDbDateString(planning.endDate),
       employees: employees.map((e) => ({ id: e.id, name: e.name, skills: e.skills })),
       shift_types: shiftTypes.map((s) => ({
         id: s.id,
         name: s.name,
         start_time: s.startTime,
         end_time: s.endTime,
-        duration_hours: computeDurationHours(s.startTime, s.endTime),
+        duration_hours: computeShiftDurationHours(s.startTime, s.endTime),
       })),
       constraints: constraints
         .filter((c) => !SOLVER_UNSUPPORTED_TYPES.includes(c.type as ConstraintType))

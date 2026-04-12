@@ -2,15 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { RiCalendarLine } from "@remixicon/react"
 import { ScheduleViews } from "@/components/teams/schedule-views"
-
-function shiftDurationHours(startTime: string, endTime: string): number {
-  const [sh, sm] = startTime.split(":").map(Number)
-  const [eh, em] = endTime.split(":").map(Number)
-  const startMin = sh * 60 + sm
-  let endMin = eh * 60 + em
-  if (endMin <= startMin) endMin += 24 * 60
-  return (endMin - startMin) / 60
-}
+import { computeShiftDurationHours } from "@/lib/utils"
 
 export default async function MySchedulePage({
   params,
@@ -60,7 +52,7 @@ export default async function MySchedulePage({
   })
 
   const totalHours = assignments.reduce(
-    (sum, a) => sum + shiftDurationHours(a.shiftType.startTime, a.shiftType.endTime),
+    (sum, a) => sum + computeShiftDurationHours(a.shiftType.startTime, a.shiftType.endTime),
     0
   )
   const today = new Date()
