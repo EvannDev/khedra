@@ -30,6 +30,7 @@ export type ConstraintMinAggregateOutputType = {
   scope: $Enums.ConstraintScope | null
   enabled: boolean | null
   source: $Enums.ConstraintSource | null
+  teamId: string | null
   planningId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -41,6 +42,7 @@ export type ConstraintMaxAggregateOutputType = {
   scope: $Enums.ConstraintScope | null
   enabled: boolean | null
   source: $Enums.ConstraintSource | null
+  teamId: string | null
   planningId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -53,6 +55,7 @@ export type ConstraintCountAggregateOutputType = {
   scope: number
   enabled: number
   source: number
+  teamId: number
   planningId: number
   createdAt: number
   updatedAt: number
@@ -66,6 +69,7 @@ export type ConstraintMinAggregateInputType = {
   scope?: true
   enabled?: true
   source?: true
+  teamId?: true
   planningId?: true
   createdAt?: true
   updatedAt?: true
@@ -77,6 +81,7 @@ export type ConstraintMaxAggregateInputType = {
   scope?: true
   enabled?: true
   source?: true
+  teamId?: true
   planningId?: true
   createdAt?: true
   updatedAt?: true
@@ -89,6 +94,7 @@ export type ConstraintCountAggregateInputType = {
   scope?: true
   enabled?: true
   source?: true
+  teamId?: true
   planningId?: true
   createdAt?: true
   updatedAt?: true
@@ -174,7 +180,8 @@ export type ConstraintGroupByOutputType = {
   scope: $Enums.ConstraintScope
   enabled: boolean
   source: $Enums.ConstraintSource
-  planningId: string
+  teamId: string
+  planningId: string | null
   createdAt: Date
   updatedAt: Date
   _count: ConstraintCountAggregateOutputType | null
@@ -207,10 +214,12 @@ export type ConstraintWhereInput = {
   scope?: Prisma.EnumConstraintScopeFilter<"Constraint"> | $Enums.ConstraintScope
   enabled?: Prisma.BoolFilter<"Constraint"> | boolean
   source?: Prisma.EnumConstraintSourceFilter<"Constraint"> | $Enums.ConstraintSource
-  planningId?: Prisma.StringFilter<"Constraint"> | string
+  teamId?: Prisma.StringFilter<"Constraint"> | string
+  planningId?: Prisma.StringNullableFilter<"Constraint"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
-  planning?: Prisma.XOR<Prisma.PlanningScalarRelationFilter, Prisma.PlanningWhereInput>
+  team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
+  planning?: Prisma.XOR<Prisma.PlanningNullableScalarRelationFilter, Prisma.PlanningWhereInput> | null
 }
 
 export type ConstraintOrderByWithRelationInput = {
@@ -220,9 +229,11 @@ export type ConstraintOrderByWithRelationInput = {
   scope?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   source?: Prisma.SortOrder
-  planningId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
+  planningId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  team?: Prisma.TeamOrderByWithRelationInput
   planning?: Prisma.PlanningOrderByWithRelationInput
 }
 
@@ -236,10 +247,12 @@ export type ConstraintWhereUniqueInput = Prisma.AtLeast<{
   scope?: Prisma.EnumConstraintScopeFilter<"Constraint"> | $Enums.ConstraintScope
   enabled?: Prisma.BoolFilter<"Constraint"> | boolean
   source?: Prisma.EnumConstraintSourceFilter<"Constraint"> | $Enums.ConstraintSource
-  planningId?: Prisma.StringFilter<"Constraint"> | string
+  teamId?: Prisma.StringFilter<"Constraint"> | string
+  planningId?: Prisma.StringNullableFilter<"Constraint"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
-  planning?: Prisma.XOR<Prisma.PlanningScalarRelationFilter, Prisma.PlanningWhereInput>
+  team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
+  planning?: Prisma.XOR<Prisma.PlanningNullableScalarRelationFilter, Prisma.PlanningWhereInput> | null
 }, "id">
 
 export type ConstraintOrderByWithAggregationInput = {
@@ -249,7 +262,8 @@ export type ConstraintOrderByWithAggregationInput = {
   scope?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   source?: Prisma.SortOrder
-  planningId?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
+  planningId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ConstraintCountOrderByAggregateInput
@@ -267,7 +281,8 @@ export type ConstraintScalarWhereWithAggregatesInput = {
   scope?: Prisma.EnumConstraintScopeWithAggregatesFilter<"Constraint"> | $Enums.ConstraintScope
   enabled?: Prisma.BoolWithAggregatesFilter<"Constraint"> | boolean
   source?: Prisma.EnumConstraintSourceWithAggregatesFilter<"Constraint"> | $Enums.ConstraintSource
-  planningId?: Prisma.StringWithAggregatesFilter<"Constraint"> | string
+  teamId?: Prisma.StringWithAggregatesFilter<"Constraint"> | string
+  planningId?: Prisma.StringNullableWithAggregatesFilter<"Constraint"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Constraint"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Constraint"> | Date | string
 }
@@ -281,7 +296,8 @@ export type ConstraintCreateInput = {
   source?: $Enums.ConstraintSource
   createdAt?: Date | string
   updatedAt?: Date | string
-  planning: Prisma.PlanningCreateNestedOneWithoutConstraintsInput
+  team: Prisma.TeamCreateNestedOneWithoutConstraintsInput
+  planning?: Prisma.PlanningCreateNestedOneWithoutConstraintsInput
 }
 
 export type ConstraintUncheckedCreateInput = {
@@ -291,7 +307,8 @@ export type ConstraintUncheckedCreateInput = {
   scope?: $Enums.ConstraintScope
   enabled?: boolean
   source?: $Enums.ConstraintSource
-  planningId: string
+  teamId: string
+  planningId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -305,7 +322,8 @@ export type ConstraintUpdateInput = {
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  planning?: Prisma.PlanningUpdateOneRequiredWithoutConstraintsNestedInput
+  team?: Prisma.TeamUpdateOneRequiredWithoutConstraintsNestedInput
+  planning?: Prisma.PlanningUpdateOneWithoutConstraintsNestedInput
 }
 
 export type ConstraintUncheckedUpdateInput = {
@@ -315,7 +333,8 @@ export type ConstraintUncheckedUpdateInput = {
   scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
-  planningId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  planningId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -327,7 +346,8 @@ export type ConstraintCreateManyInput = {
   scope?: $Enums.ConstraintScope
   enabled?: boolean
   source?: $Enums.ConstraintSource
-  planningId: string
+  teamId: string
+  planningId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -350,7 +370,8 @@ export type ConstraintUncheckedUpdateManyInput = {
   scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
-  planningId?: Prisma.StringFieldUpdateOperationsInput | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  planningId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -372,6 +393,7 @@ export type ConstraintCountOrderByAggregateInput = {
   scope?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   planningId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -383,6 +405,7 @@ export type ConstraintMaxOrderByAggregateInput = {
   scope?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   planningId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -394,9 +417,52 @@ export type ConstraintMinOrderByAggregateInput = {
   scope?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  teamId?: Prisma.SortOrder
   planningId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type ConstraintCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput> | Prisma.ConstraintCreateWithoutTeamInput[] | Prisma.ConstraintUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.ConstraintCreateOrConnectWithoutTeamInput | Prisma.ConstraintCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.ConstraintCreateManyTeamInputEnvelope
+  connect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+}
+
+export type ConstraintUncheckedCreateNestedManyWithoutTeamInput = {
+  create?: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput> | Prisma.ConstraintCreateWithoutTeamInput[] | Prisma.ConstraintUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.ConstraintCreateOrConnectWithoutTeamInput | Prisma.ConstraintCreateOrConnectWithoutTeamInput[]
+  createMany?: Prisma.ConstraintCreateManyTeamInputEnvelope
+  connect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+}
+
+export type ConstraintUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput> | Prisma.ConstraintCreateWithoutTeamInput[] | Prisma.ConstraintUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.ConstraintCreateOrConnectWithoutTeamInput | Prisma.ConstraintCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.ConstraintUpsertWithWhereUniqueWithoutTeamInput | Prisma.ConstraintUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.ConstraintCreateManyTeamInputEnvelope
+  set?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  disconnect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  delete?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  connect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  update?: Prisma.ConstraintUpdateWithWhereUniqueWithoutTeamInput | Prisma.ConstraintUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.ConstraintUpdateManyWithWhereWithoutTeamInput | Prisma.ConstraintUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
+}
+
+export type ConstraintUncheckedUpdateManyWithoutTeamNestedInput = {
+  create?: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput> | Prisma.ConstraintCreateWithoutTeamInput[] | Prisma.ConstraintUncheckedCreateWithoutTeamInput[]
+  connectOrCreate?: Prisma.ConstraintCreateOrConnectWithoutTeamInput | Prisma.ConstraintCreateOrConnectWithoutTeamInput[]
+  upsert?: Prisma.ConstraintUpsertWithWhereUniqueWithoutTeamInput | Prisma.ConstraintUpsertWithWhereUniqueWithoutTeamInput[]
+  createMany?: Prisma.ConstraintCreateManyTeamInputEnvelope
+  set?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  disconnect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  delete?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  connect?: Prisma.ConstraintWhereUniqueInput | Prisma.ConstraintWhereUniqueInput[]
+  update?: Prisma.ConstraintUpdateWithWhereUniqueWithoutTeamInput | Prisma.ConstraintUpdateWithWhereUniqueWithoutTeamInput[]
+  updateMany?: Prisma.ConstraintUpdateManyWithWhereWithoutTeamInput | Prisma.ConstraintUpdateManyWithWhereWithoutTeamInput[]
+  deleteMany?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
 }
 
 export type ConstraintCreateNestedManyWithoutPlanningInput = {
@@ -457,6 +523,72 @@ export type EnumConstraintSourceFieldUpdateOperationsInput = {
   set?: $Enums.ConstraintSource
 }
 
+export type ConstraintCreateWithoutTeamInput = {
+  id?: string
+  type: $Enums.ConstraintType
+  params: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: $Enums.ConstraintScope
+  enabled?: boolean
+  source?: $Enums.ConstraintSource
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  planning?: Prisma.PlanningCreateNestedOneWithoutConstraintsInput
+}
+
+export type ConstraintUncheckedCreateWithoutTeamInput = {
+  id?: string
+  type: $Enums.ConstraintType
+  params: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: $Enums.ConstraintScope
+  enabled?: boolean
+  source?: $Enums.ConstraintSource
+  planningId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type ConstraintCreateOrConnectWithoutTeamInput = {
+  where: Prisma.ConstraintWhereUniqueInput
+  create: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput>
+}
+
+export type ConstraintCreateManyTeamInputEnvelope = {
+  data: Prisma.ConstraintCreateManyTeamInput | Prisma.ConstraintCreateManyTeamInput[]
+  skipDuplicates?: boolean
+}
+
+export type ConstraintUpsertWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.ConstraintWhereUniqueInput
+  update: Prisma.XOR<Prisma.ConstraintUpdateWithoutTeamInput, Prisma.ConstraintUncheckedUpdateWithoutTeamInput>
+  create: Prisma.XOR<Prisma.ConstraintCreateWithoutTeamInput, Prisma.ConstraintUncheckedCreateWithoutTeamInput>
+}
+
+export type ConstraintUpdateWithWhereUniqueWithoutTeamInput = {
+  where: Prisma.ConstraintWhereUniqueInput
+  data: Prisma.XOR<Prisma.ConstraintUpdateWithoutTeamInput, Prisma.ConstraintUncheckedUpdateWithoutTeamInput>
+}
+
+export type ConstraintUpdateManyWithWhereWithoutTeamInput = {
+  where: Prisma.ConstraintScalarWhereInput
+  data: Prisma.XOR<Prisma.ConstraintUpdateManyMutationInput, Prisma.ConstraintUncheckedUpdateManyWithoutTeamInput>
+}
+
+export type ConstraintScalarWhereInput = {
+  AND?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
+  OR?: Prisma.ConstraintScalarWhereInput[]
+  NOT?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
+  id?: Prisma.StringFilter<"Constraint"> | string
+  type?: Prisma.EnumConstraintTypeFilter<"Constraint"> | $Enums.ConstraintType
+  params?: Prisma.JsonFilter<"Constraint">
+  scope?: Prisma.EnumConstraintScopeFilter<"Constraint"> | $Enums.ConstraintScope
+  enabled?: Prisma.BoolFilter<"Constraint"> | boolean
+  source?: Prisma.EnumConstraintSourceFilter<"Constraint"> | $Enums.ConstraintSource
+  teamId?: Prisma.StringFilter<"Constraint"> | string
+  planningId?: Prisma.StringNullableFilter<"Constraint"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
+}
+
 export type ConstraintCreateWithoutPlanningInput = {
   id?: string
   type: $Enums.ConstraintType
@@ -466,6 +598,7 @@ export type ConstraintCreateWithoutPlanningInput = {
   source?: $Enums.ConstraintSource
   createdAt?: Date | string
   updatedAt?: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutConstraintsInput
 }
 
 export type ConstraintUncheckedCreateWithoutPlanningInput = {
@@ -475,6 +608,7 @@ export type ConstraintUncheckedCreateWithoutPlanningInput = {
   scope?: $Enums.ConstraintScope
   enabled?: boolean
   source?: $Enums.ConstraintSource
+  teamId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -505,19 +639,52 @@ export type ConstraintUpdateManyWithWhereWithoutPlanningInput = {
   data: Prisma.XOR<Prisma.ConstraintUpdateManyMutationInput, Prisma.ConstraintUncheckedUpdateManyWithoutPlanningInput>
 }
 
-export type ConstraintScalarWhereInput = {
-  AND?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
-  OR?: Prisma.ConstraintScalarWhereInput[]
-  NOT?: Prisma.ConstraintScalarWhereInput | Prisma.ConstraintScalarWhereInput[]
-  id?: Prisma.StringFilter<"Constraint"> | string
-  type?: Prisma.EnumConstraintTypeFilter<"Constraint"> | $Enums.ConstraintType
-  params?: Prisma.JsonFilter<"Constraint">
-  scope?: Prisma.EnumConstraintScopeFilter<"Constraint"> | $Enums.ConstraintScope
-  enabled?: Prisma.BoolFilter<"Constraint"> | boolean
-  source?: Prisma.EnumConstraintSourceFilter<"Constraint"> | $Enums.ConstraintSource
-  planningId?: Prisma.StringFilter<"Constraint"> | string
-  createdAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Constraint"> | Date | string
+export type ConstraintCreateManyTeamInput = {
+  id?: string
+  type: $Enums.ConstraintType
+  params: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: $Enums.ConstraintScope
+  enabled?: boolean
+  source?: $Enums.ConstraintSource
+  planningId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type ConstraintUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumConstraintTypeFieldUpdateOperationsInput | $Enums.ConstraintType
+  params?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  planning?: Prisma.PlanningUpdateOneWithoutConstraintsNestedInput
+}
+
+export type ConstraintUncheckedUpdateWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumConstraintTypeFieldUpdateOperationsInput | $Enums.ConstraintType
+  params?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
+  planningId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type ConstraintUncheckedUpdateManyWithoutTeamInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumConstraintTypeFieldUpdateOperationsInput | $Enums.ConstraintType
+  params?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
+  enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
+  planningId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ConstraintCreateManyPlanningInput = {
@@ -527,6 +694,7 @@ export type ConstraintCreateManyPlanningInput = {
   scope?: $Enums.ConstraintScope
   enabled?: boolean
   source?: $Enums.ConstraintSource
+  teamId: string
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -540,6 +708,7 @@ export type ConstraintUpdateWithoutPlanningInput = {
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutConstraintsNestedInput
 }
 
 export type ConstraintUncheckedUpdateWithoutPlanningInput = {
@@ -549,6 +718,7 @@ export type ConstraintUncheckedUpdateWithoutPlanningInput = {
   scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -560,6 +730,7 @@ export type ConstraintUncheckedUpdateManyWithoutPlanningInput = {
   scope?: Prisma.EnumConstraintScopeFieldUpdateOperationsInput | $Enums.ConstraintScope
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   source?: Prisma.EnumConstraintSourceFieldUpdateOperationsInput | $Enums.ConstraintSource
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -573,10 +744,12 @@ export type ConstraintSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   scope?: boolean
   enabled?: boolean
   source?: boolean
+  teamId?: boolean
   planningId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }, ExtArgs["result"]["constraint"]>
 
 export type ConstraintSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -586,10 +759,12 @@ export type ConstraintSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   scope?: boolean
   enabled?: boolean
   source?: boolean
+  teamId?: boolean
   planningId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }, ExtArgs["result"]["constraint"]>
 
 export type ConstraintSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -599,10 +774,12 @@ export type ConstraintSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   scope?: boolean
   enabled?: boolean
   source?: boolean
+  teamId?: boolean
   planningId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }, ExtArgs["result"]["constraint"]>
 
 export type ConstraintSelectScalar = {
@@ -612,26 +789,31 @@ export type ConstraintSelectScalar = {
   scope?: boolean
   enabled?: boolean
   source?: boolean
+  teamId?: boolean
   planningId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ConstraintOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "params" | "scope" | "enabled" | "source" | "planningId" | "createdAt" | "updatedAt", ExtArgs["result"]["constraint"]>
+export type ConstraintOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "params" | "scope" | "enabled" | "source" | "teamId" | "planningId" | "createdAt" | "updatedAt", ExtArgs["result"]["constraint"]>
 export type ConstraintInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }
 export type ConstraintIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }
 export type ConstraintIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  planning?: boolean | Prisma.PlanningDefaultArgs<ExtArgs>
+  team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
+  planning?: boolean | Prisma.Constraint$planningArgs<ExtArgs>
 }
 
 export type $ConstraintPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Constraint"
   objects: {
-    planning: Prisma.$PlanningPayload<ExtArgs>
+    team: Prisma.$TeamPayload<ExtArgs>
+    planning: Prisma.$PlanningPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -640,7 +822,8 @@ export type $ConstraintPayload<ExtArgs extends runtime.Types.Extensions.Internal
     scope: $Enums.ConstraintScope
     enabled: boolean
     source: $Enums.ConstraintSource
-    planningId: string
+    teamId: string
+    planningId: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["constraint"]>
@@ -1037,7 +1220,8 @@ readonly fields: ConstraintFieldRefs;
  */
 export interface Prisma__ConstraintClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  planning<T extends Prisma.PlanningDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PlanningDefaultArgs<ExtArgs>>): Prisma.Prisma__PlanningClient<runtime.Types.Result.GetResult<Prisma.$PlanningPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  team<T extends Prisma.TeamDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TeamDefaultArgs<ExtArgs>>): Prisma.Prisma__TeamClient<runtime.Types.Result.GetResult<Prisma.$TeamPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  planning<T extends Prisma.Constraint$planningArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Constraint$planningArgs<ExtArgs>>): Prisma.Prisma__PlanningClient<runtime.Types.Result.GetResult<Prisma.$PlanningPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1073,6 +1257,7 @@ export interface ConstraintFieldRefs {
   readonly scope: Prisma.FieldRef<"Constraint", 'ConstraintScope'>
   readonly enabled: Prisma.FieldRef<"Constraint", 'Boolean'>
   readonly source: Prisma.FieldRef<"Constraint", 'ConstraintSource'>
+  readonly teamId: Prisma.FieldRef<"Constraint", 'String'>
   readonly planningId: Prisma.FieldRef<"Constraint", 'String'>
   readonly createdAt: Prisma.FieldRef<"Constraint", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Constraint", 'DateTime'>
@@ -1474,6 +1659,25 @@ export type ConstraintDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Limit how many Constraints to delete.
    */
   limit?: number
+}
+
+/**
+ * Constraint.planning
+ */
+export type Constraint$planningArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Planning
+   */
+  select?: Prisma.PlanningSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Planning
+   */
+  omit?: Prisma.PlanningOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PlanningInclude<ExtArgs> | null
+  where?: Prisma.PlanningWhereInput
 }
 
 /**

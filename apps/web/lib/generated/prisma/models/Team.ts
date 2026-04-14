@@ -186,6 +186,7 @@ export type TeamWhereInput = {
   employees?: Prisma.EmployeeListRelationFilter
   shiftTypes?: Prisma.ShiftTypeListRelationFilter
   plannings?: Prisma.PlanningListRelationFilter
+  constraints?: Prisma.ConstraintListRelationFilter
 }
 
 export type TeamOrderByWithRelationInput = {
@@ -198,6 +199,7 @@ export type TeamOrderByWithRelationInput = {
   employees?: Prisma.EmployeeOrderByRelationAggregateInput
   shiftTypes?: Prisma.ShiftTypeOrderByRelationAggregateInput
   plannings?: Prisma.PlanningOrderByRelationAggregateInput
+  constraints?: Prisma.ConstraintOrderByRelationAggregateInput
 }
 
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
@@ -213,6 +215,7 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   employees?: Prisma.EmployeeListRelationFilter
   shiftTypes?: Prisma.ShiftTypeListRelationFilter
   plannings?: Prisma.PlanningListRelationFilter
+  constraints?: Prisma.ConstraintListRelationFilter
 }, "id" | "inviteToken">
 
 export type TeamOrderByWithAggregationInput = {
@@ -247,6 +250,7 @@ export type TeamCreateInput = {
   employees?: Prisma.EmployeeCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateInput = {
@@ -259,6 +263,7 @@ export type TeamUncheckedCreateInput = {
   employees?: Prisma.EmployeeUncheckedCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeUncheckedCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningUncheckedCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUpdateInput = {
@@ -271,6 +276,7 @@ export type TeamUpdateInput = {
   employees?: Prisma.EmployeeUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateInput = {
@@ -283,6 +289,7 @@ export type TeamUncheckedUpdateInput = {
   employees?: Prisma.EmployeeUncheckedUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUncheckedUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUncheckedUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateManyInput = {
@@ -394,6 +401,20 @@ export type TeamUpdateOneRequiredWithoutPlanningsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutPlanningsInput, Prisma.TeamUpdateWithoutPlanningsInput>, Prisma.TeamUncheckedUpdateWithoutPlanningsInput>
 }
 
+export type TeamCreateNestedOneWithoutConstraintsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutConstraintsInput, Prisma.TeamUncheckedCreateWithoutConstraintsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutConstraintsInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneRequiredWithoutConstraintsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutConstraintsInput, Prisma.TeamUncheckedCreateWithoutConstraintsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutConstraintsInput
+  upsert?: Prisma.TeamUpsertWithoutConstraintsInput
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutConstraintsInput, Prisma.TeamUpdateWithoutConstraintsInput>, Prisma.TeamUncheckedUpdateWithoutConstraintsInput>
+}
+
 export type TeamCreateWithoutMembersInput = {
   id?: string
   name: string
@@ -403,6 +424,7 @@ export type TeamCreateWithoutMembersInput = {
   employees?: Prisma.EmployeeCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMembersInput = {
@@ -414,6 +436,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   employees?: Prisma.EmployeeUncheckedCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeUncheckedCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningUncheckedCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMembersInput = {
@@ -441,6 +464,7 @@ export type TeamUpdateWithoutMembersInput = {
   employees?: Prisma.EmployeeUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMembersInput = {
@@ -452,6 +476,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   employees?: Prisma.EmployeeUncheckedUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUncheckedUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUncheckedUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutEmployeesInput = {
@@ -463,6 +488,7 @@ export type TeamCreateWithoutEmployeesInput = {
   members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutEmployeesInput = {
@@ -474,6 +500,7 @@ export type TeamUncheckedCreateWithoutEmployeesInput = {
   members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeUncheckedCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningUncheckedCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutEmployeesInput = {
@@ -501,6 +528,7 @@ export type TeamUpdateWithoutEmployeesInput = {
   members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutEmployeesInput = {
@@ -512,6 +540,7 @@ export type TeamUncheckedUpdateWithoutEmployeesInput = {
   members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUncheckedUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUncheckedUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutShiftTypesInput = {
@@ -523,6 +552,7 @@ export type TeamCreateWithoutShiftTypesInput = {
   members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
   employees?: Prisma.EmployeeCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutShiftTypesInput = {
@@ -534,6 +564,7 @@ export type TeamUncheckedCreateWithoutShiftTypesInput = {
   members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
   employees?: Prisma.EmployeeUncheckedCreateNestedManyWithoutTeamInput
   plannings?: Prisma.PlanningUncheckedCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutShiftTypesInput = {
@@ -561,6 +592,7 @@ export type TeamUpdateWithoutShiftTypesInput = {
   members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
   employees?: Prisma.EmployeeUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutShiftTypesInput = {
@@ -572,6 +604,7 @@ export type TeamUncheckedUpdateWithoutShiftTypesInput = {
   members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
   employees?: Prisma.EmployeeUncheckedUpdateManyWithoutTeamNestedInput
   plannings?: Prisma.PlanningUncheckedUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutPlanningsInput = {
@@ -583,6 +616,7 @@ export type TeamCreateWithoutPlanningsInput = {
   members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
   employees?: Prisma.EmployeeCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutPlanningsInput = {
@@ -594,6 +628,7 @@ export type TeamUncheckedCreateWithoutPlanningsInput = {
   members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
   employees?: Prisma.EmployeeUncheckedCreateNestedManyWithoutTeamInput
   shiftTypes?: Prisma.ShiftTypeUncheckedCreateNestedManyWithoutTeamInput
+  constraints?: Prisma.ConstraintUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutPlanningsInput = {
@@ -621,6 +656,7 @@ export type TeamUpdateWithoutPlanningsInput = {
   members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
   employees?: Prisma.EmployeeUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutPlanningsInput = {
@@ -632,6 +668,71 @@ export type TeamUncheckedUpdateWithoutPlanningsInput = {
   members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
   employees?: Prisma.EmployeeUncheckedUpdateManyWithoutTeamNestedInput
   shiftTypes?: Prisma.ShiftTypeUncheckedUpdateManyWithoutTeamNestedInput
+  constraints?: Prisma.ConstraintUncheckedUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamCreateWithoutConstraintsInput = {
+  id?: string
+  name: string
+  inviteToken?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  employees?: Prisma.EmployeeCreateNestedManyWithoutTeamInput
+  shiftTypes?: Prisma.ShiftTypeCreateNestedManyWithoutTeamInput
+  plannings?: Prisma.PlanningCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutConstraintsInput = {
+  id?: string
+  name: string
+  inviteToken?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  employees?: Prisma.EmployeeUncheckedCreateNestedManyWithoutTeamInput
+  shiftTypes?: Prisma.ShiftTypeUncheckedCreateNestedManyWithoutTeamInput
+  plannings?: Prisma.PlanningUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutConstraintsInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutConstraintsInput, Prisma.TeamUncheckedCreateWithoutConstraintsInput>
+}
+
+export type TeamUpsertWithoutConstraintsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutConstraintsInput, Prisma.TeamUncheckedUpdateWithoutConstraintsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutConstraintsInput, Prisma.TeamUncheckedCreateWithoutConstraintsInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutConstraintsInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutConstraintsInput, Prisma.TeamUncheckedUpdateWithoutConstraintsInput>
+}
+
+export type TeamUpdateWithoutConstraintsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  inviteToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  employees?: Prisma.EmployeeUpdateManyWithoutTeamNestedInput
+  shiftTypes?: Prisma.ShiftTypeUpdateManyWithoutTeamNestedInput
+  plannings?: Prisma.PlanningUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutConstraintsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  inviteToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  employees?: Prisma.EmployeeUncheckedUpdateManyWithoutTeamNestedInput
+  shiftTypes?: Prisma.ShiftTypeUncheckedUpdateManyWithoutTeamNestedInput
+  plannings?: Prisma.PlanningUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 
@@ -644,6 +745,7 @@ export type TeamCountOutputType = {
   employees: number
   shiftTypes: number
   plannings: number
+  constraints: number
 }
 
 export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -651,6 +753,7 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   employees?: boolean | TeamCountOutputTypeCountEmployeesArgs
   shiftTypes?: boolean | TeamCountOutputTypeCountShiftTypesArgs
   plannings?: boolean | TeamCountOutputTypeCountPlanningsArgs
+  constraints?: boolean | TeamCountOutputTypeCountConstraintsArgs
 }
 
 /**
@@ -691,6 +794,13 @@ export type TeamCountOutputTypeCountPlanningsArgs<ExtArgs extends runtime.Types.
   where?: Prisma.PlanningWhereInput
 }
 
+/**
+ * TeamCountOutputType without action
+ */
+export type TeamCountOutputTypeCountConstraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ConstraintWhereInput
+}
+
 
 export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -702,6 +812,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   employees?: boolean | Prisma.Team$employeesArgs<ExtArgs>
   shiftTypes?: boolean | Prisma.Team$shiftTypesArgs<ExtArgs>
   plannings?: boolean | Prisma.Team$planningsArgs<ExtArgs>
+  constraints?: boolean | Prisma.Team$constraintsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
 
@@ -735,6 +846,7 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   employees?: boolean | Prisma.Team$employeesArgs<ExtArgs>
   shiftTypes?: boolean | Prisma.Team$shiftTypesArgs<ExtArgs>
   plannings?: boolean | Prisma.Team$planningsArgs<ExtArgs>
+  constraints?: boolean | Prisma.Team$constraintsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TeamIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -747,6 +859,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     employees: Prisma.$EmployeePayload<ExtArgs>[]
     shiftTypes: Prisma.$ShiftTypePayload<ExtArgs>[]
     plannings: Prisma.$PlanningPayload<ExtArgs>[]
+    constraints: Prisma.$ConstraintPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1152,6 +1265,7 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   employees<T extends Prisma.Team$employeesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$employeesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmployeePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   shiftTypes<T extends Prisma.Team$shiftTypesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$shiftTypesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShiftTypePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   plannings<T extends Prisma.Team$planningsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$planningsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PlanningPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  constraints<T extends Prisma.Team$constraintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$constraintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConstraintPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1672,6 +1786,30 @@ export type Team$planningsArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.PlanningScalarFieldEnum | Prisma.PlanningScalarFieldEnum[]
+}
+
+/**
+ * Team.constraints
+ */
+export type Team$constraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Constraint
+   */
+  select?: Prisma.ConstraintSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Constraint
+   */
+  omit?: Prisma.ConstraintOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ConstraintInclude<ExtArgs> | null
+  where?: Prisma.ConstraintWhereInput
+  orderBy?: Prisma.ConstraintOrderByWithRelationInput | Prisma.ConstraintOrderByWithRelationInput[]
+  cursor?: Prisma.ConstraintWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ConstraintScalarFieldEnum | Prisma.ConstraintScalarFieldEnum[]
 }
 
 /**

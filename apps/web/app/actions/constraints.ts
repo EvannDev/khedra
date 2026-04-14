@@ -12,7 +12,7 @@ async function verifyPlanningOwnership(planningId: string, teamId: string) {
 
 export async function createConstraint(
   teamId: string,
-  planningId: string,
+  planningId: string | null,
   data: unknown,
   scope: "all" | "employee" = "all"
 ) {
@@ -22,8 +22,10 @@ export async function createConstraint(
   const member = await requireTeamMember(teamId, session.user.id)
   if (!member || member.role === "viewer") return { error: "Forbidden" }
 
-  const planning = await verifyPlanningOwnership(planningId, teamId)
-  if (!planning) return { error: "Not found" }
+  if (planningId) {
+    const planning = await verifyPlanningOwnership(planningId, teamId)
+    if (!planning) return { error: "Not found" }
+  }
 
   const parsed = constraintSchema.safeParse(data)
   if (!parsed.success) {
@@ -35,7 +37,8 @@ export async function createConstraint(
       data: {
         type: parsed.data.type,
         params: parsed.data.params,
-        planningId,
+        teamId,
+        ...(planningId ? { planningId } : {}),
         scope,
         source: "manual",
         enabled: true,
@@ -50,7 +53,7 @@ export async function createConstraint(
 
 export async function updateConstraint(
   teamId: string,
-  planningId: string,
+  planningId: string | null,
   constraintId: string,
   data: unknown
 ) {
@@ -60,8 +63,10 @@ export async function updateConstraint(
   const member = await requireTeamMember(teamId, session.user.id)
   if (!member || member.role === "viewer") return { error: "Forbidden" }
 
-  const planning = await verifyPlanningOwnership(planningId, teamId)
-  if (!planning) return { error: "Not found" }
+  if (planningId) {
+    const planning = await verifyPlanningOwnership(planningId, teamId)
+    if (!planning) return { error: "Not found" }
+  }
 
   const parsed = constraintSchema.safeParse(data)
   if (!parsed.success) {
@@ -70,7 +75,7 @@ export async function updateConstraint(
 
   try {
     const constraint = await prisma.constraint.update({
-      where: { id: constraintId, planningId },
+      where: { id: constraintId, teamId, planningId: planningId ?? null },
       data: { params: parsed.data.params },
     })
     return { success: true as const, constraint }
@@ -81,7 +86,7 @@ export async function updateConstraint(
 
 export async function toggleConstraint(
   teamId: string,
-  planningId: string,
+  planningId: string | null,
   constraintId: string,
   enabled: boolean
 ) {
@@ -91,12 +96,14 @@ export async function toggleConstraint(
   const member = await requireTeamMember(teamId, session.user.id)
   if (!member || member.role === "viewer") return { error: "Forbidden" }
 
-  const planning = await verifyPlanningOwnership(planningId, teamId)
-  if (!planning) return { error: "Not found" }
+  if (planningId) {
+    const planning = await verifyPlanningOwnership(planningId, teamId)
+    if (!planning) return { error: "Not found" }
+  }
 
   try {
     await prisma.constraint.update({
-      where: { id: constraintId, planningId },
+      where: { id: constraintId, teamId, planningId: planningId ?? null },
       data: { enabled },
     })
     return { success: true as const }
@@ -107,7 +114,7 @@ export async function toggleConstraint(
 
 export async function deleteConstraint(
   teamId: string,
-  planningId: string,
+  planningId: string | null,
   constraintId: string
 ) {
   const session = await auth()
@@ -116,11 +123,15 @@ export async function deleteConstraint(
   const member = await requireTeamMember(teamId, session.user.id)
   if (!member || member.role === "viewer") return { error: "Forbidden" }
 
-  const planning = await verifyPlanningOwnership(planningId, teamId)
-  if (!planning) return { error: "Not found" }
+  if (planningId) {
+    const planning = await verifyPlanningOwnership(planningId, teamId)
+    if (!planning) return { error: "Not found" }
+  }
 
   try {
-    await prisma.constraint.delete({ where: { id: constraintId, planningId } })
+    await prisma.constraint.delete({
+      where: { id: constraintId, teamId, planningId: planningId ?? null },
+    })
     return { success: true as const }
   } catch {
     return { error: "Failed to delete constraint." }

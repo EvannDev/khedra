@@ -54,7 +54,7 @@ import type { ConstraintType } from "@/lib/generated/prisma/enums"
 
 interface ConstraintListProps {
   teamId: string
-  planningId: string
+  planningId: string | null
   constraints: ConstraintModel[]
   employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]

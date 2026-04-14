@@ -204,6 +204,7 @@ export const ConstraintScalarFieldEnum = {
   scope: 'scope',
   enabled: 'enabled',
   source: 'source',
+  teamId: 'teamId',
   planningId: 'planningId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

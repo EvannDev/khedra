@@ -127,10 +127,11 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members    TeamMember[]
-  employees  Employee[]
-  shiftTypes ShiftType[]
-  plannings  Planning[]
+  members     TeamMember[]
+  employees   Employee[]
+  shiftTypes  ShiftType[]
+  plannings   Planning[]
+  constraints Constraint[]
 }
 
 model TeamMember {
@@ -197,11 +198,13 @@ model Constraint {
   scope      ConstraintScope  @default(all)
   enabled    Boolean          @default(true)
   source     ConstraintSource @default(manual)
-  planningId String
+  teamId     String
+  planningId String?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
-  planning Planning @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  team     Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  planning Planning? @relation(fields: [planningId], references: [id], onDelete: Cascade)
 }
 
 model Solution {

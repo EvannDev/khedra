@@ -98,7 +98,7 @@ const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
   weekend_fairness: { max_weekends_per_month: 2 },
   shift_preference: { employee_id: "", shift_type_id: "", weight: "preferred", mode: "soft" },
   holiday: { dates: [], name: "", employee_id: "" },
-  no_shift_alternation: { penalty: 3 },
+  no_shift_alternation: { penalty: 3, mode: "soft", scope: "consecutive" },
   min_consecutive_days: { min: 2, mode: "soft" },
   max_days_per_week: { max: 5, mode: "hard" },
   min_days_between_shifts: { days: 2, consecutive: 1, mode: "hard" },
@@ -114,7 +114,7 @@ const defaultValuesMap: Record<ConstraintType, Record<string, unknown>> = {
 
 interface ConstraintFormProps {
   teamId: string
-  planningId: string
+  planningId: string | null
   employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   onSuccess: () => void
@@ -123,7 +123,7 @@ interface ConstraintFormProps {
 interface ParamsStepProps {
   type: ConstraintType
   teamId: string
-  planningId: string
+  planningId: string | null
   employees: { id: string; name: string; skills: string[] }[]
   shiftTypes: { id: string; name: string }[]
   onSuccess: () => void
@@ -731,19 +731,46 @@ export function ConstraintParamsStep({
 
         {/* no_shift_alternation */}
         {type === "no_shift_alternation" && (
-          <FormField
-            control={form.control}
-            name="penalty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Penalty per alternation</FormLabel>
-                <FormControl>
-                  <Input type="number" min={1} max={10} placeholder="e.g. 3" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          <>
+            <ModeToggle form={form} softFirst />
+            {form.watch("mode") === "hard" && (
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium leading-none">Scope</p>
+                <div className="flex rounded-lg border border-input overflow-hidden text-sm">
+                  {(["consecutive", "period"] as const).map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => form.setValue("scope", val)}
+                      className={`flex-1 px-3 py-2 transition-colors ${form.watch("scope") === val ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    >
+                      {val === "consecutive" ? "Consecutive days only" : "Entire period"}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {form.watch("scope") === "period"
+                    ? "Each employee is locked to one shift type for the entire planning period, even across days off."
+                    : "Prevents switching shift type between back-to-back worked days."}
+                </p>
+              </div>
             )}
-          />
+            {form.watch("mode") !== "hard" && (
+              <FormField
+                control={form.control}
+                name="penalty"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Penalty per alternation</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} max={10} placeholder="e.g. 3" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </>
         )}
 
         {/* holiday */}

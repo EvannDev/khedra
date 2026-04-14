@@ -50,7 +50,7 @@ export async function solvePlanning(teamId: string, planningId: string) {
         orderBy: { name: "asc" },
       }),
       prisma.constraint.findMany({
-        where: { planningId, enabled: true },
+        where: { teamId, enabled: true, OR: [{ planningId }, { planningId: null }] },
         select: { type: true, params: true, scope: true },
       }),
     ])

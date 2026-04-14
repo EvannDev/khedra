@@ -397,6 +397,11 @@ export type PlanningMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type PlanningNullableScalarRelationFilter = {
+  is?: Prisma.PlanningWhereInput | null
+  isNot?: Prisma.PlanningWhereInput | null
+}
+
 export type PlanningScalarRelationFilter = {
   is?: Prisma.PlanningWhereInput
   isNot?: Prisma.PlanningWhereInput
@@ -454,10 +459,12 @@ export type PlanningCreateNestedOneWithoutConstraintsInput = {
   connect?: Prisma.PlanningWhereUniqueInput
 }
 
-export type PlanningUpdateOneRequiredWithoutConstraintsNestedInput = {
+export type PlanningUpdateOneWithoutConstraintsNestedInput = {
   create?: Prisma.XOR<Prisma.PlanningCreateWithoutConstraintsInput, Prisma.PlanningUncheckedCreateWithoutConstraintsInput>
   connectOrCreate?: Prisma.PlanningCreateOrConnectWithoutConstraintsInput
   upsert?: Prisma.PlanningUpsertWithoutConstraintsInput
+  disconnect?: Prisma.PlanningWhereInput | boolean
+  delete?: Prisma.PlanningWhereInput | boolean
   connect?: Prisma.PlanningWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PlanningUpdateToOneWithWhereWithoutConstraintsInput, Prisma.PlanningUpdateWithoutConstraintsInput>, Prisma.PlanningUncheckedUpdateWithoutConstraintsInput>
 }

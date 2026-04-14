@@ -8,6 +8,7 @@ const tabs = [
   { label: "Employees", segment: "employees", minRole: "viewer" },
   { label: "Shifts", segment: "shifts", minRole: "viewer" },
   { label: "Plannings", segment: "plannings", minRole: "viewer" },
+  { label: "Constraints", segment: "constraints", minRole: "viewer" },
   { label: "Members", segment: "members", minRole: "manager" },
   { label: "My Schedule", segment: "my-schedule", minRole: "viewer" },
 ] as const

@@ -543,19 +543,37 @@ def solve(request: SolveRequest) -> SolveResponse:
                                 objective_terms.append(-4 * viol)
 
         elif constraint.type == ConstraintType.no_shift_alternation:
+            mode = params.get("mode", "soft")
+            scope = params.get("scope", "consecutive")
             penalty = int(params.get("penalty", 3))
-            for emp_id in emp_ids:
-                for d_idx in range(len(days) - 1):
-                    for s1 in shifts:
-                        for s2 in shifts:
-                            if s1.id == s2.id:
-                                continue
-                            # alt = 1 iff employee works s1 on day d AND s2 on day d+1
-                            alt = model.new_bool_var(f"alt_{emp_id}_{d_idx}_{s1.id}_{s2.id}")
-                            model.add(alt <= x[emp_id][d_idx][s1.id])
-                            model.add(alt <= x[emp_id][d_idx + 1][s2.id])
-                            model.add(alt >= x[emp_id][d_idx][s1.id] + x[emp_id][d_idx + 1][s2.id] - 1)
-                            objective_terms.append(-penalty * alt)
+
+            if mode == "hard" and scope == "period":
+                # Each employee may use at most one shift type across the entire period.
+                # used[emp][shift] = 1 iff employee works that shift on any day.
+                for emp_id in emp_ids:
+                    used: dict[str, any] = {}
+                    for s in shifts:
+                        u = model.new_bool_var(f"used_{emp_id}_{s.id}")
+                        model.add_max_equality(u, [x[emp_id][d_idx][s.id] for d_idx in range(len(days))])
+                        used[s.id] = u
+                    model.add(sum(used[s.id] for s in shifts) <= 1)
+            else:
+                for emp_id in emp_ids:
+                    for d_idx in range(len(days) - 1):
+                        for s1 in shifts:
+                            for s2 in shifts:
+                                if s1.id == s2.id:
+                                    continue
+                                if mode == "hard":
+                                    # Forbid working s1 on day d and s2 on day d+1
+                                    model.add(x[emp_id][d_idx][s1.id] + x[emp_id][d_idx + 1][s2.id] <= 1)
+                                else:
+                                    # alt = 1 iff employee works s1 on day d AND s2 on day d+1
+                                    alt = model.new_bool_var(f"alt_{emp_id}_{d_idx}_{s1.id}_{s2.id}")
+                                    model.add(alt <= x[emp_id][d_idx][s1.id])
+                                    model.add(alt <= x[emp_id][d_idx + 1][s2.id])
+                                    model.add(alt >= x[emp_id][d_idx][s1.id] + x[emp_id][d_idx + 1][s2.id] - 1)
+                                    objective_terms.append(-penalty * alt)
 
         elif constraint.type == ConstraintType.preferred_consecutive_days:
             preferred_n = max(2, int(params.get("days", 3)))

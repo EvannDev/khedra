@@ -52,6 +52,8 @@ export const holidayParamsSchema = z.object({
 
 export const noShiftAlternationParamsSchema = z.object({
   penalty: z.coerce.number().int().min(1, "Must be at least 1").max(10, "Must be 10 or fewer"),
+  mode: z.enum(["hard", "soft"]).default("soft"),
+  scope: z.enum(["consecutive", "period"]).default("consecutive"),
 })
 
 export const minConsecutiveDaysParamsSchema = z.object({

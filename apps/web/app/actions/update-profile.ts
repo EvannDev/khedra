@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth, signOut } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { profileSchema } from "@/lib/schemas/profile"
 import { redirect } from "next/navigation"
@@ -25,4 +25,17 @@ export async function updateProfile(data: unknown): Promise<{ success: true; nam
   } catch {
     return { error: "Failed to update profile. Please try again." }
   }
+}
+
+export async function deleteAccount(): Promise<{ error: string } | never> {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/sign-in")
+
+  try {
+    await prisma.user.delete({ where: { id: session.user.id } })
+  } catch {
+    return { error: "Failed to delete account. Please try again." }
+  }
+
+  await signOut({ redirectTo: "/sign-in" })
 }

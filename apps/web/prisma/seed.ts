@@ -85,11 +85,11 @@ async function main() {
   // ── Constraints ───────────────────────────────────────────────────────
   await prisma.constraint.createMany({
     data: [
-      { type: "max_hours_per_week",      params: { max: 35 },                                  scope: "all",      planningId: planning.id },
-      { type: "min_rest_between_shifts", params: { hours: 11 },                               scope: "all",      planningId: planning.id },
-      { type: "weekend_fairness",        params: { max_weekends_per_month: 2 },               scope: "all",      planningId: planning.id },
-      { type: "unavailability",          params: { employee_id: bob.id, days: ["sat","sun"] }, scope: "employee", planningId: planning.id },
-      { type: "min_employees_per_shift", params: { shift_type_id: morning.id, min: 2 },       scope: "all",      planningId: planning.id },
+      { type: "max_hours_per_week",      params: { max: 35 },                                  scope: "all",      teamId: team.id, planningId: planning.id },
+      { type: "min_rest_between_shifts", params: { hours: 11 },                               scope: "all",      teamId: team.id, planningId: planning.id },
+      { type: "weekend_fairness",        params: { max_weekends_per_month: 2 },               scope: "all",      teamId: team.id, planningId: planning.id },
+      { type: "unavailability",          params: { employee_id: bob.id, days: ["sat","sun"] }, scope: "employee", teamId: team.id, planningId: planning.id },
+      { type: "min_employees_per_shift", params: { shift_type_id: morning.id, min: 2 },       scope: "all",      teamId: team.id, planningId: planning.id },
     ],
   })
 

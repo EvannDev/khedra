@@ -1194,3 +1194,86 @@ class TestMaxShiftsPerDay:
         resp = solve(req)
         assert resp.status == SolveStatus.solved
         assert len(resp.assignments) <= 1
+
+
+# ---------------------------------------------------------------------------
+# Constraint: no_shift_alternation
+# ---------------------------------------------------------------------------
+
+class TestNoShiftAlternation:
+    def test_hard_mode_prevents_alternation(self):
+        """Hard mode: an employee assigned to s1 on day d cannot be on s2 on day d+1."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("morning", start_h=7, end_h=15), make_shift("afternoon", start_h=13, end_h=21)]
+        c = Constraint(
+            type=ConstraintType.no_shift_alternation,
+            params={"mode": "hard", "penalty": 3},
+        )
+        req = make_request(
+            employees=emps,
+            shift_types=shifts,
+            constraints=[c],
+            start=date(2025, 1, 6),
+            end=date(2025, 1, 10),  # Mon–Fri (5 days)
+        )
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+
+        # Build a dict: (employee_id, date) → shift_type_id
+        assignments_by_emp_day: dict[tuple[str, date], str] = {}
+        for a in resp.assignments:
+            assignments_by_emp_day[(a.employee_id, a.date)] = a.shift_type_id
+
+        days = [date(2025, 1, 6) + timedelta(days=i) for i in range(5)]
+        for emp in emps:
+            for d_idx in range(len(days) - 1):
+                d, d_next = days[d_idx], days[d_idx + 1]
+                s_today = assignments_by_emp_day.get((emp.id, d))
+                s_tomorrow = assignments_by_emp_day.get((emp.id, d_next))
+                if s_today and s_tomorrow:
+                    assert s_today == s_tomorrow, (
+                        f"{emp.id} alternated from {s_today} to {s_tomorrow} between {d} and {d_next}"
+                    )
+
+    def test_soft_mode_is_feasible(self):
+        """Soft mode does not make the problem infeasible — solver can still alternate if needed."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("morning", start_h=7, end_h=15), make_shift("afternoon", start_h=13, end_h=21)]
+        c = Constraint(
+            type=ConstraintType.no_shift_alternation,
+            params={"mode": "soft", "penalty": 5},
+        )
+        req = make_request(
+            employees=emps,
+            shift_types=shifts,
+            constraints=[c],
+            start=date(2025, 1, 6),
+            end=date(2025, 1, 8),  # 3 days
+        )
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+
+    def test_period_scope_locks_shift_type_across_days_off(self):
+        """scope=period: employee must use only one shift type even with rest days in between."""
+        emps = [make_employee("e1"), make_employee("e2")]
+        shifts = [make_shift("morning", start_h=7, end_h=15), make_shift("afternoon", start_h=13, end_h=21)]
+        c = Constraint(
+            type=ConstraintType.no_shift_alternation,
+            params={"mode": "hard", "scope": "period", "penalty": 3},
+        )
+        req = make_request(
+            employees=emps,
+            shift_types=shifts,
+            constraints=[c],
+            start=date(2025, 1, 6),
+            end=date(2025, 1, 10),  # Mon–Fri (5 days)
+        )
+        resp = solve(req)
+        assert resp.status == SolveStatus.solved
+
+        # Each employee must use at most one shift type across the whole period
+        for emp in emps:
+            emp_shifts = {a.shift_type_id for a in resp.assignments if a.employee_id == emp.id}
+            assert len(emp_shifts) <= 1, (
+                f"{emp.id} worked multiple shift types across period: {emp_shifts}"
+            )

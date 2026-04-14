@@ -121,8 +121,16 @@ export function formatConstraintParams(
       const base = `${emp(params.employee_id as string)} ${params.weight}s ${st(params.shift_type_id as string)}`
       return mode === "hard" ? `${base} (hard)` : base
     }
-    case "no_shift_alternation":
+    case "no_shift_alternation": {
+      const mode = (params.mode as string) ?? "soft"
+      const scope = (params.scope as string) ?? "consecutive"
+      if (mode === "hard") {
+        return scope === "period"
+          ? "Fixed shift type (whole period)"
+          : "No shift alternation (hard)"
+      }
       return `Avoid shift alternation (penalty ${params.penalty})`
+    }
     case "min_consecutive_days":
       return `Min ${params.min} consecutive days (${params.mode ?? "soft"})`
     case "max_days_per_week":

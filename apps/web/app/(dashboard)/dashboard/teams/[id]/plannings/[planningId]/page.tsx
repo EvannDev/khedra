@@ -8,6 +8,7 @@ import { pluralize } from "@/lib/utils"
 import { CONSTRAINT_TYPE_LABELS } from "@/lib/constraint-utils"
 import type { ConstraintType } from "@/lib/generated/prisma/enums"
 import { ConstraintList } from "@/components/teams/constraint-list"
+import { TeamConstraintSection } from "@/components/teams/team-constraint-section"
 import { SolutionView } from "@/components/teams/solution-view"
 
 function formatDate(date: Date) {
@@ -35,9 +36,12 @@ export default async function PlanningDetailPage({
 
   if (!planning) notFound()
 
-  const [constraints, employees, shiftTypes, latestSolution] = await Promise.all([
+  const [constraints, teamConstraints, employees, shiftTypes, latestSolution] = await Promise.all([
     prisma.constraint.findMany({
       where: { planningId },
+    }),
+    prisma.constraint.findMany({
+      where: { teamId: id, planningId: null },
     }),
     prisma.employee.findMany({
       where: { teamId: id },
@@ -112,7 +116,15 @@ export default async function PlanningDetailPage({
         </div>
       </div>
 
-      {/* Constraints */}
+      {/* Team-level constraints (read-only) */}
+      <TeamConstraintSection
+        teamId={id}
+        constraints={teamConstraints}
+        employees={employees}
+        shiftTypes={shiftTypes}
+      />
+
+      {/* Planning-specific constraints */}
       <ConstraintList
         teamId={id}
         planningId={planningId}
@@ -129,7 +141,7 @@ export default async function PlanningDetailPage({
         employees={employees}
         shiftTypes={shiftTypes}
         latestSolution={latestSolution}
-        constraints={constraints}
+        constraints={[...teamConstraints, ...constraints]}
       />
     </div>
   )

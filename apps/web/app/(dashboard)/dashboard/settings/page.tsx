@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getAvatarUrl } from "@/lib/avatar"
 import { ProfileForm } from "./profile-form"
+import { DeleteAccountButton } from "@/components/settings/delete-account-button"
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -27,6 +28,11 @@ export default async function SettingsPage() {
           email={session.user.email ?? ""}
           avatarUrl={avatarUrl}
         />
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold tracking-tight mb-4">Danger zone</h2>
+        <DeleteAccountButton />
       </div>
     </div>
   )
